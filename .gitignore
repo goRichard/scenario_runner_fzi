@@ -15,3 +15,4 @@ results*.txt
 *.log
 .project
 .pydevproject
+.idea
