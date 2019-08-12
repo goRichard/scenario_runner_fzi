@@ -21,9 +21,12 @@ from argparse import RawTextHelpFormatter
 from datetime import datetime
 import importlib
 import inspect
+import numpy as np
 
 import carla
 
+from srunner.custom_scenarios.test_scenario import *
+from srunner.custom_scenarios.setlevel_intersection import *
 from srunner.scenariomanager.carla_data_provider import *
 from srunner.scenariomanager.scenario_manager import ScenarioManager
 from srunner.scenarios.background_activity import *
@@ -62,7 +65,9 @@ SCENARIOS = {
     "OtherLeadingVehicle": OTHER_LEADING_VEHICLE_SCENARIOS,
     "SignalizedJunctionRightTurn": TURNING_RIGHT_SIGNALIZED_JUNCTION_SCENARIOS,
     "SignalizedJunctionLeftTurn": TURN_LEFT_SIGNALIZED_JUNCTION_SCENARIOS,
-    "MasterScenario": MASTER_SCENARIO
+    "MasterScenario": MASTER_SCENARIO,
+    "TestScenario": TEST_SCENARIO,
+    "SetLevelIntersection": SETLEVEL_INTERSECTION
 }
 
 
@@ -230,7 +235,7 @@ class ScenarioRunner(object):
         if args.reloadWorld:
             self.world = self.client.load_world(town)
         else:
-            if CarlaDataProvider.get_map().name != town:
+            if CarlaDataProvider.get_map(self.world).name != town:
                 print("The CARLA server uses the wrong map!")
                 print("This scenario requires to use map {}".format(town))
                 return False
@@ -275,7 +280,10 @@ class ScenarioRunner(object):
             return
 
         # Setup and run the scenarios for repetition times
-        for _ in range(int(args.repetitions)):
+        y_values = np.arange(-234.0, -204.0, 1.0)  # 30 repetitions
+        file = open("data.txt", "a+")
+
+        for rep in range(int(args.repetitions)):
 
             # Load the scenario configurations provided in the config file
             scenario_configurations = None
@@ -285,11 +293,15 @@ class ScenarioRunner(object):
                 continue
 
             scenario_configurations = parse_scenario_configuration(scenario_config_file, args.scenario)
+            #scenario_configurations[0].other_actors[0].transform.location.y = y_values[rep]
+            #print("now using y: " + str(scenario_configurations[0].other_actors[0].transform.location.y))
+            # todo: write to file: (x and) y position of other actor 0
 
             # Execute each configuration
             config_counter = 0
             for config in scenario_configurations:
-
+                file.write(str(config.other_actors[0].transform.location.y) + ',')
+                print(config.town)
                 if not self.load_world(args, config.town):
                     self.cleanup()
                     continue
@@ -377,7 +389,7 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser(description=DESCRIPTION,
                                      formatter_class=RawTextHelpFormatter)
-    PARSER.add_argument('--host', default='127.0.0.1',
+    PARSER.add_argument('--host', default='10.5.2.34', #'127.0.0.1',
                         help='IP of the host server (default: localhost)')
     PARSER.add_argument('--port', default='2000',
                         help='TCP port to listen to (default: 2000)')

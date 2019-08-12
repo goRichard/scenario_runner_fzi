@@ -17,6 +17,8 @@ import threading
 
 import py_trees
 
+import numpy as np
+
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime, TimeOut
@@ -125,6 +127,7 @@ class ScenarioManager(object):
         self.scenario_duration_game = 0.0
         self.start_system_time = None
         self.end_system_time = None
+        self.shortest_distance = 1000.0
 
         world.on_tick(self._tick_scenario)
 
@@ -212,6 +215,14 @@ class ScenarioManager(object):
 
                 if self.scenario_tree.status != py_trees.common.Status.RUNNING:
                     self._running = False
+                distances = []
+                for i in range(len(self.other_actors)):
+                    distance = np.sqrt((self.other_actors[i].get_location().x - self.ego_vehicles[0].get_location().x)**2 + (
+                                self.other_actors[i].get_location().y - self.ego_vehicles[0].get_location().y)**2)
+                    distances.append(distance)
+                    #print('actor ' + str(i) + ': ' + str(distance))
+                if distances[0] < self.shortest_distance:
+                    self.shortest_distance = distances[0]
 
     def stop_scenario(self):
         """
@@ -220,6 +231,8 @@ class ScenarioManager(object):
         if self.scenario is not None:
             self.scenario.terminate()
 
+        file = open("data.txt", "a+")
+        file.write(str(self.shortest_distance) + ',')
         CarlaDataProvider.cleanup()
 
     def analyze_scenario(self, stdout, filename, junit):

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<scenarios>
+    <scenario name="TestScenarioBasicAgent" type="TestScenario" town="Town03">
+        <ego_vehicle x="-6.45" y="-61.72" z="0.1" yaw="92" model="vehicle.lincoln.mkz2017" />
+        <other_actor x="-50.25" y="0.69" z="1.16" yaw="1.67" model="vehicle.tesla.model3" />
+        <other_actor x="4.93" y="45.03" z="0.58" yaw="-88.89" model="vehicle.audi.tt" />
+        <other_actor x="52.61" y="-7.84" z="0.23" yaw="-179.14" model="vehicle.mercedes-benz.coupe" />
+    </scenario>
+
+        <scenario name="TestScenarioWaypoints" type="TestScenario" town="Town03">
+        <ego_vehicle x="-6.45" y="-61.72" z="0.1" yaw="92" model="vehicle.lincoln.mkz2017" />
+        <other_actor x="-50.25" y="0.69" z="1.16" yaw="1.67" model="vehicle.tesla.model3" />
+        <other_actor x="4.93" y="45.03" z="0.58" yaw="-88.89" model="vehicle.audi.tt" />
+        <other_actor x="52.61" y="-7.84" z="0.23" yaw="-179.14" model="vehicle.mercedes-benz.coupe" />
+    </scenario>
+</scenarios>

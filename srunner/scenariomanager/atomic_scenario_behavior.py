@@ -903,13 +903,13 @@ class BasicAgentBehavior(AtomicBehavior):
 
     _acceptable_target_distance = 2
 
-    def __init__(self, actor, target_location, name="BasicAgentBehavior"):
+    def __init__(self, actor, target_location, target_speed=50.0, name="BasicAgentBehavior"):
         """
         Setup actor and maximum steer value
         """
         super(BasicAgentBehavior, self).__init__(name)
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
-        self._agent = BasicAgent(actor)  # pylint: disable=undefined-variable
+        self._agent = BasicAgent(actor, target_speed=target_speed)  # pylint: disable=undefined-variable
         self._agent.set_destination((target_location.x, target_location.y, target_location.z))
         self._control = carla.VehicleControl()
         self._actor = actor
