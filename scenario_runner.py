@@ -27,6 +27,7 @@ import carla
 
 from srunner.custom_scenarios.test_scenario import *
 from srunner.custom_scenarios.setlevel_intersection import *
+from srunner.custom_scenarios.setlevel_intersection_3cars import *
 from srunner.scenariomanager.carla_data_provider import *
 from srunner.scenariomanager.scenario_manager import ScenarioManager
 from srunner.scenarios.background_activity import *
@@ -67,7 +68,8 @@ SCENARIOS = {
     "SignalizedJunctionLeftTurn": TURN_LEFT_SIGNALIZED_JUNCTION_SCENARIOS,
     "MasterScenario": MASTER_SCENARIO,
     "TestScenario": TEST_SCENARIO,
-    "SetLevelIntersection": SETLEVEL_INTERSECTION
+    "SetLevelIntersection": SETLEVEL_INTERSECTION,
+    "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A
 }
 
 
@@ -389,7 +391,7 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser(description=DESCRIPTION,
                                      formatter_class=RawTextHelpFormatter)
-    PARSER.add_argument('--host', default='10.5.2.34', #'127.0.0.1',
+    PARSER.add_argument('--host', default='127.0.0.1', #'10.5.2.34', #
                         help='IP of the host server (default: localhost)')
     PARSER.add_argument('--port', default='2000',
                         help='TCP port to listen to (default: 2000)')

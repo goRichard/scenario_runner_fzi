@@ -6,8 +6,8 @@ from srunner.tools.scenario_helper import *
 
 import re
 
-SETLEVEL_INTERSECTION = [
-    "SetLevelIntersection"
+SETLEVEL_INTERSECTION_3A = [
+    "SetLevelIntersection3A"
 ]
 
 # ==============================================================================
@@ -22,7 +22,7 @@ def find_weather_presets():
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
 
 
-class SetLevelIntersection(BasicScenario):
+class SetLevelIntersection3A(BasicScenario):
     """
     Test scenario to try out framework
     """
@@ -45,7 +45,7 @@ class SetLevelIntersection(BasicScenario):
         world.set_weather(preset[0])
 
         # Call constructor of BasicScenario
-        super(SetLevelIntersection, self).__init__(
+        super(SetLevelIntersection3A, self).__init__(
           "TestScenario",
           ego_vehicles,
           config,
@@ -55,15 +55,15 @@ class SetLevelIntersection(BasicScenario):
 
     def _create_behavior(self):
         """
-        2 agents enter intersection and start at scenario start time
+        3 agents enter intersection and start at scenario start time
         """
         root = py_trees.composites.Sequence()
 
         # ACTOR 1
-        actor1 = AccelerateToVelocity(self.other_actors[0], 6.0, 28.0)
-        actor2 = KeepVelocity(self.other_actors[0], 28.0)
-        root.add_child(actor1)
-        root.add_child(actor2)
+        leaf1 = AccelerateToVelocity(self.other_actors[0], 6.0, 28.0)
+        leaf2 = KeepVelocity(self.other_actors[0], 28.0)
+        root.add_child(leaf1)
+        root.add_child(leaf2)
 
         return root
 
@@ -77,7 +77,7 @@ class SetLevelIntersection(BasicScenario):
         collision_criterion = CollisionTest(self.ego_vehicles[0], terminate_on_failure=True)
         parallel_criteria.add_child(collision_criterion)
 
-        in_region_criterion = InRadiusRegionTest(self.ego_vehicles[0], 290.87, -246.36, 2.0)
+        in_region_criterion = InRadiusRegionTest(self.ego_vehicles[0], 222.3, -249.64, 2.0)
         parallel_criteria.add_child(in_region_criterion)
 
         return parallel_criteria
