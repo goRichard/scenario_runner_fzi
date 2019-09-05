@@ -391,7 +391,7 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser(description=DESCRIPTION,
                                      formatter_class=RawTextHelpFormatter)
-    PARSER.add_argument('--host', default='127.0.0.1', #'10.5.2.34', #
+    PARSER.add_argument('--host', default='10.5.2.34', #'127.0.0.1',
                         help='IP of the host server (default: localhost)')
     PARSER.add_argument('--port', default='2000',
                         help='TCP port to listen to (default: 2000)')
