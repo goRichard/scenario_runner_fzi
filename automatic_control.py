@@ -37,6 +37,7 @@ try:
     from pygame.locals import K_DOWN
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
+    from pygame.locals import K_F2
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -112,6 +113,9 @@ def get_actor_display_name(actor, truncate=250):
 
 class World(object):
     def __init__(self, carla_world, hud, actor_filter):
+        # true until f1 key signal arrives -> interrupt of game loop
+        self.running = True
+
         self.world = carla_world
         self.map = self.world.get_map()
         self.mapname = carla_world.get_map().name
@@ -119,6 +123,8 @@ class World(object):
         self.world.on_tick(hud.on_world_tick)
         self.world.wait_for_tick(10.0)
         self.vehicle = None
+
+        count_init_cycles = 0
         while self.vehicle is None:
             print("Scenario not yet ready")
             time.sleep(1)
@@ -126,6 +132,10 @@ class World(object):
             for vehicle in possible_vehicles:
                 if vehicle.attributes['role_name'] == "hero":
                     self.vehicle = vehicle
+
+            if count_init_cycles > 3:
+                sys.exit()
+            count_init_cycles += 1
         self.vehicle_name = self.vehicle.type_id
         self.collision_sensor = CollisionSensor(self.vehicle, self.hud)
         self.lane_invasion_sensor = LaneInvasionSensor(self.vehicle, self.hud)
@@ -225,6 +235,8 @@ class KeyboardControl(object):
                     world.restart()
                 elif event.key == K_F1:
                     world.hud.toggle_info()
+                elif event.key == K_F2:
+                    sys.exit()
                 elif event.key == K_h or (event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT):
                     world.hud.help.toggle()
                 elif event.key == K_TAB:
@@ -758,7 +770,7 @@ def game_loop(args):
         if args.agent == "Roaming":
             agent = RoamingAgent(world.vehicle)
         else:
-            agent = BasicAgent(world.vehicle, target_speed=5)
+            agent = BasicAgent(world.vehicle, target_speed=25)
             spawn_point = world.map.get_spawn_points()[0]
             #agent.set_destination((spawn_point.location.x,
             #                       spawn_point.location.y,

@@ -23,6 +23,8 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime, TimeOut
 
+from pynput.keyboard import Key, Controller
+
 
 class Scenario(object):
 
@@ -129,6 +131,8 @@ class ScenarioManager(object):
         self.end_system_time = None
         self.shortest_distance = 1000.0
 
+        self.keyboard = Controller()
+
         world.on_tick(self._tick_scenario)
 
     def load_scenario(self, scenario):
@@ -231,6 +235,11 @@ class ScenarioManager(object):
         if self.scenario is not None:
             self.scenario.terminate()
 
+        # notify agent with escape key to close actual window
+        self.keyboard.press(Key.esc)
+        self.keyboard.release(Key.esc)
+
+        # write recorded data to file
         file = open("data.txt", "a+")
         file.write(str(self.shortest_distance) + ',')
         CarlaDataProvider.cleanup()
