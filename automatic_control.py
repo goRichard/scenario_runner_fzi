@@ -758,7 +758,7 @@ def game_loop(args):
         if args.agent == "Roaming":
             agent = RoamingAgent(world.vehicle)
         else:
-            agent = BasicAgent(world.vehicle, target_speed=40)
+            agent = BasicAgent(world.vehicle, target_speed=5)
             spawn_point = world.map.get_spawn_points()[0]
             #agent.set_destination((spawn_point.location.x,
             #                       spawn_point.location.y,

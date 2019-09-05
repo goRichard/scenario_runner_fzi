@@ -57,13 +57,25 @@ class SetLevelIntersection3A(BasicScenario):
         """
         3 agents enter intersection and start at scenario start time
         """
-        root = py_trees.composites.Sequence()
+        root = py_trees.composites.Parallel(
+            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
+        agent1 = py_trees.composites.Sequence()
+        agent2 = py_trees.composites.Sequence()
 
         # ACTOR 1
         leaf1 = AccelerateToVelocity(self.other_actors[0], 6.0, 28.0)
         leaf2 = KeepVelocity(self.other_actors[0], 28.0)
-        root.add_child(leaf1)
-        root.add_child(leaf2)
+        agent1.add_child(leaf1)
+        agent1.add_child(leaf2)
+
+        # ACTOR 2
+        leaf3 = AccelerateToVelocity(self.other_actors[1], 6.0, 40.0)
+        leaf4 = KeepVelocity(self.other_actors[1], 40.0)
+        agent2.add_child(leaf3)
+        agent2.add_child(leaf4)
+
+        root.add_child(agent1)
+        root.add_child(agent2)
 
         return root
 
@@ -76,8 +88,7 @@ class SetLevelIntersection3A(BasicScenario):
 
         collision_criterion = CollisionTest(self.ego_vehicles[0], terminate_on_failure=True)
         parallel_criteria.add_child(collision_criterion)
-
-        in_region_criterion = InRadiusRegionTest(self.ego_vehicles[0], 222.3, -249.64, 2.0)
+        in_region_criterion = InRadiusRegionTest(self.ego_vehicles[0], 258.26, -270.1, 2.0) # 2.0 is radius not z-coordinate!
         parallel_criteria.add_child(in_region_criterion)
 
         return parallel_criteria
