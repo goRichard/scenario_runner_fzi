@@ -89,15 +89,14 @@ class ConfrontationCross(BasicScenario):
         """
         Initialize all parameters required for ConfrontationCross
         """
-        self._world = world
         self._map = CarlaDataProvider.get_map()
         self._first_vehicle_location = 25
         self._first_vehicle_speed = 40
-
-        self._other_actor_transform = None
+        self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
         self._other_actor_max_brake = 1.0
         self._other_actor_stop_in_front_intersection = 20
-
+        self._other_actor_transform = None
+        # Timeout of scenario in seconds
         self.timeout = timeout
 
         # Call constructor of BasicScenario
@@ -108,79 +107,39 @@ class ConfrontationCross(BasicScenario):
           world=world,
           debug_mode=True,
           criteria_enable=criteria_enable)
-    '''
+
+        if randomize:
+            self._ego_other_distance_start = random.randint(4, 8)
+
+            # Example code how to randomize start location
+            # distance = random.randint(20, 80)
+            # new_location, _ = get_location_in_distance(self.ego_vehicles[0], distance)
+            # waypoint = CarlaDataProvider.get_map().get_waypoint(new_location)
+            # waypoint.transform.location.z += 39
+            # self.other_actors[0].set_transform(waypoint.transform)
+
     def _initialize_actors(self, config):
+        pass
         """
         Custom initialization
         """
-        
-        self._other_actor_transform = config.other_actors[0].transform
+
+        '''
+                first_vehicle_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._first_vehicle_location)
+        self._other_actor_transform = carla.Transform(
+            carla.Location(first_vehicle_waypoint.transform.location.x,
+                           first_vehicle_waypoint.transform.location.y,
+                           first_vehicle_waypoint.transform.location.z + 1),
+            first_vehicle_waypoint.transform.rotation)
         first_vehicle_transform = carla.Transform(
-            carla.Location(config.other_actors[0].transform.location.x,
-                           config.other_actors[0].transform.location.y,
-                           config.other_actors[0].transform.location.z - 500),
-            config.other_actors[0].transform.rotation)
-        try:
-            first_vehicle = CarlaActorPool.request_new_actor(config.other_actors[0].model, self._other_actor_transform)
-        except RuntimeError as r:
-            raise r
-        first_vehicle.set_transform(first_vehicle_transform)
+            carla.Location(self._other_actor_transform.location.x,
+                           self._other_actor_transform.location.y,
+                           self._other_actor_transform.location.z - 500),
+            self._other_actor_transform.rotation)
+        first_vehicle = CarlaActorPool.request_new_actor('vehicle.nissan.patrol', first_vehicle_transform)
         self.other_actors.append(first_vehicle)
+        '''
 
-
-        print(self.other_actors[0],
-        self.ego_vehicles[0])
-        print(len(self.ego_vehicles))
-        for ego in self.ego_vehicles:
-            print(ego, ego.get_location())
-
-        print('Initiation finished\n')
-'''
-    '''
-    def create_behavior(self):
-        """
-        Setup the behavior for NewScenario
-        """
-        print('create behavior')
-        # to avoid the other actor blocking traffic, it was spawed elsewhere
-        # reset its pose to the required one
-        start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
-
-        start_first_actor_trigger = InTriggerRegion(
-            self.ego_vehicles[0],
-            -11, -1,
-            -35, -25)
-
-        # let the other actor drive until next intersection
-        # @todo: We should add some feedback mechanism to respond to ego_vehicle behavior
-        driving_to_next_intersection = py_trees.composites.Parallel(
-            "Driving Towards Intersection",
-            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
-
-        driving_to_next_intersection.add_child(WaypointFollower(self.other_actors[0], self._first_vehicle_speed))
-        driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
-            self.other_actors[0], self._other_actor_stop_in_front_intersection))
-
-        # stop vehicle
-        stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake)
-
-        # end condition
-        endcondition = InTriggerDistanceToVehicle(self.other_actors[0],
-                                                        self.ego_vehicles[0],
-                                                        distance=20,
-                                                        name="FinalDistance")
-
-        # Build behavior tree
-        sequence = py_trees.composites.Sequence("Sequence Behavior")
-        sequence.add_child(start_transform)
-        #sequence.add_child(start_first_actor_trigger)
-        sequence.add_child(driving_to_next_intersection)
-        sequence.add_child(stop)
-        sequence.add_child(endcondition)
-        sequence.add_child(ActorDestroy(self.other_actors[0]))
-
-        return sequence
-    '''
     def _create_behavior(self):
         """
         The scenario defined after is a "follow leading vehicle" scenario. After
@@ -190,28 +149,18 @@ class ConfrontationCross(BasicScenario):
         enough to the other actor to end the scenario.
         If this does not happen within 60 seconds, a timeout stops the scenario
         """
-        print(self.other_actors[0], self.ego_vehicles[0])
+        #print(self.other_actors[0], self.ego_vehicles[0])
+
 
         # to avoid the other actor blocking traffic, it was spawed elsewhere
         # reset its pose to the required one
-        #start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
+        start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
 
         # let the other actor drive until next intersection
         # @todo: We should add some feedback mechanism to respond to ego_vehicle behavior
         driving_to_next_intersection = py_trees.composites.Parallel(
             "DrivingTowardsIntersection",
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
-
-        start_first_actor_trigger = InTriggerRegion(
-            self.ego_vehicles[0],
-            -11, -1,
-            -35, -25)
-        other_loc = self.other_actors[0].get_location()
-        print(type(other_loc))
-        loc = carla.Location(other_loc.x,
-                           other_loc.y+300,
-                           other_loc.z)
-        other_forward = BasicAgentBehavior(self.other_actors[0], loc)
 
         driving_to_next_intersection.add_child(WaypointFollower(self.other_actors[0], self._first_vehicle_speed))
         driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
@@ -233,8 +182,7 @@ class ConfrontationCross(BasicScenario):
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
-        #sequence.add_child(start_transform)
-        sequence.add_child(other_forward)
+        sequence.add_child(start_transform)
         sequence.add_child(driving_to_next_intersection)
         sequence.add_child(stop)
         sequence.add_child(endcondition)
@@ -242,7 +190,7 @@ class ConfrontationCross(BasicScenario):
 
         return sequence
 
-    def _create_test_criteria(self):
+    def create_test_criteria(self):
         """
         Setup the evaluation criteria for NewScenario
         """
