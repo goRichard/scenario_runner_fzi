@@ -32,6 +32,7 @@ from srunner.scenariomanager.carla_data_provider import *
 from srunner.scenariomanager.scenario_manager import ScenarioManager
 from srunner.scenarios.background_activity import *
 from srunner.scenarios.control_loss import *
+from srunner.scenarios.confrontation_cross import *
 from srunner.scenarios.follow_leading_vehicle import *
 from srunner.scenarios.maneuver_opposite_direction import *
 from srunner.scenarios.master_scenario import *
@@ -69,7 +70,9 @@ SCENARIOS = {
     "MasterScenario": MASTER_SCENARIO,
     "TestScenario": TEST_SCENARIO,
     "SetLevelIntersection": SETLEVEL_INTERSECTION,
-    "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A
+    "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A,
+    "ConfrontationCross": CONFRONTATION_CROSS
+
 }
 
 
@@ -302,7 +305,7 @@ class ScenarioRunner(object):
             # Execute each configuration
             config_counter = 0
             for config in scenario_configurations:
-                file.write(str(config.other_actors[0].transform.location.y) + ',')
+                #file.write(str(config.other_actors[0].transform.location.y) + ',')
                 print(config.town)
                 if not self.load_world(args, config.town):
                     self.cleanup()
@@ -391,7 +394,7 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser(description=DESCRIPTION,
                                      formatter_class=RawTextHelpFormatter)
-    PARSER.add_argument('--host', default='10.5.2.34', #'127.0.0.1',
+    PARSER.add_argument('--host', default='127.0.0.1',
                         help='IP of the host server (default: localhost)')
     PARSER.add_argument('--port', default='2000',
                         help='TCP port to listen to (default: 2000)')
