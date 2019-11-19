@@ -28,19 +28,17 @@ class vehicle(object):
                     self.param_set.append(param)
 
 
-model = 'vehicle.tesla.model3'
-vehicle_param_set = []
-vehicle1 = vehicle(x_i=0, x_f=2, x_step=1,
-                 y_i=0, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
+model = 'vehicle.tesla.model3' #param
+name = 'ConfrontationCross_'  # param
+scenario_type = "ConfrontationCross"  # param
+town = 'Town2'
 
-vehicle2 = vehicle(x_i=3, x_f=5, x_step=1,
-                 y_i=-1, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
-vehicle3 = vehicle(x_i=6, x_f=7, x_step=1,
-                 y_i=-1, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
-# print(len(vehicle1.param_set))
-# print(len(vehicle2.param_set))
-# print(len(vehicle3.param_set))
-# print('\n')
+vehicle_param_set = []
+# car parameters
+vehicle1 = vehicle(x_i=0, x_f=2, x_step=1, y_i=0, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
+vehicle2 = vehicle(x_i=3, x_f=5, x_step=1, y_i=-1, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
+vehicle3 = vehicle(x_i=6, x_f=7, x_step=1, y_i=-1, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
+
 vehicle_param_set.append(vehicle1.param_set)
 vehicle_param_set.append(vehicle2.param_set)
 vehicle_param_set.append(vehicle3.param_set)
@@ -51,13 +49,11 @@ var = [0]*num_vehicle
 scenarios = Element('scenarios')
 
 i = 0
-name = 'ConfrontationCross_' # param
-type = "ConfrontationCross"
 stop = True
 while stop:
     scenario = SubElement(scenarios, 'scenario',
-                          attrib={'name': name+str(i), 'type': type,
-                                  'town': 'Town2'})
+                          attrib={'name': name+str(i), 'type': scenario_type,
+                                  'town': town})
     temp = var[0]
     vehicle = SubElement(scenario, 'ego_vehicle', attrib=vehicle_param_set[0][var[0]])
     for n in range(1, num_vehicle):
@@ -75,9 +71,7 @@ while stop:
             var[n - 1] += 1
 
 mydata = prettify(scenarios)
-print(prettify(scenarios))
-
-myfile = open("test.xml", "w")
+myfile = open("{}}.xml".format(scenario_type), "w")
 myfile.write(mydata)
 
 # for vehicle_param in vehicle_param_set:
