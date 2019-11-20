@@ -447,6 +447,7 @@ class InTriggerDistanceToLocationAlongRoute(AtomicBehavior):
 
 class AccelerateToVelocity(AtomicBehavior):
 
+
     """
     This class contains an atomic acceleration behavior. The controlled
     traffic participant will accelerate with _throttle_value_ until reaching
