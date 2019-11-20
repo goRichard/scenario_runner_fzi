@@ -104,6 +104,7 @@ class SignalizedJunctionLeftTurn(BasicScenario):
         # Selecting straight path at intersection
         target_waypoint = generate_target_waypoint(
             CarlaDataProvider.get_map().get_waypoint(self.other_actors[0].get_location()), 0)
+        print(target_waypoint)
         # Generating waypoint list till next intersection
         plan = []
         wp_choice = target_waypoint.next(1.0)
@@ -111,6 +112,8 @@ class SignalizedJunctionLeftTurn(BasicScenario):
             target_waypoint = wp_choice[0]
             plan.append((target_waypoint, RoadOption.LANEFOLLOW))
             wp_choice = target_waypoint.next(1.0)
+
+        print(wp_choice)
         # adding flow of actors
         actor_source = ActorSource(
             self._world, ['vehicle.tesla.model3', 'vehicle.audi.tt'],
