@@ -29,7 +29,7 @@ from srunner.scenarios.basic_scenario import *
 from srunner.tools.scenario_helper import *
 
 
-MEET_AT_INTERSECTION_SCENARIOS = ["MeetAtIntersection"]
+MEET_AT_INTERSECTION_SCENARIO = ["MeetAtIntersection"]
 
 
 class MeetAtIntersection(BasicScenario):
