@@ -65,6 +65,13 @@ except ImportError:
 CONFRONTATION_CROSS = ['ConfrontationCross']
 
 
+def find_weather_presets():
+    rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
+    name = lambda x: ' '.join(m.group(0) for m in rgx.finditer(x))
+    presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
+    return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
+
+
 class ConfrontationCross(BasicScenario):
     """
     Some documentation on NewScenario
@@ -91,6 +98,10 @@ class ConfrontationCross(BasicScenario):
         """
         self._world = world
         self._map = CarlaDataProvider.get_map()
+        self._weather_presets = find_weather_presets()
+        self._weather_index = 0
+        preset = self._weather_presets[self._weather_index]
+        world.set_weather(preset[0])
         self._first_vehicle_location = 25
         self._first_vehicle_speed = 40
 
@@ -106,81 +117,9 @@ class ConfrontationCross(BasicScenario):
           ego_vehicles=ego_vehicles,
           config=config,
           world=world,
-          debug_mode=True,
+          debug_mode=False,
           criteria_enable=criteria_enable)
-    '''
-    def _initialize_actors(self, config):
-        """
-        Custom initialization
-        """
-        
-        self._other_actor_transform = config.other_actors[0].transform
-        first_vehicle_transform = carla.Transform(
-            carla.Location(config.other_actors[0].transform.location.x,
-                           config.other_actors[0].transform.location.y,
-                           config.other_actors[0].transform.location.z - 500),
-            config.other_actors[0].transform.rotation)
-        try:
-            first_vehicle = CarlaActorPool.request_new_actor(config.other_actors[0].model, self._other_actor_transform)
-        except RuntimeError as r:
-            raise r
-        first_vehicle.set_transform(first_vehicle_transform)
-        self.other_actors.append(first_vehicle)
 
-
-        print(self.other_actors[0],
-        self.ego_vehicles[0])
-        print(len(self.ego_vehicles))
-        for ego in self.ego_vehicles:
-            print(ego, ego.get_location())
-
-        print('Initiation finished\n')
-'''
-    '''
-    def create_behavior(self):
-        """
-        Setup the behavior for NewScenario
-        """
-        print('create behavior')
-        # to avoid the other actor blocking traffic, it was spawed elsewhere
-        # reset its pose to the required one
-        start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
-
-        start_first_actor_trigger = InTriggerRegion(
-            self.ego_vehicles[0],
-            -11, -1,
-            -35, -25)
-
-        # let the other actor drive until next intersection
-        # @todo: We should add some feedback mechanism to respond to ego_vehicle behavior
-        driving_to_next_intersection = py_trees.composites.Parallel(
-            "Driving Towards Intersection",
-            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
-
-        driving_to_next_intersection.add_child(WaypointFollower(self.other_actors[0], self._first_vehicle_speed))
-        driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
-            self.other_actors[0], self._other_actor_stop_in_front_intersection))
-
-        # stop vehicle
-        stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake)
-
-        # end condition
-        endcondition = InTriggerDistanceToVehicle(self.other_actors[0],
-                                                        self.ego_vehicles[0],
-                                                        distance=20,
-                                                        name="FinalDistance")
-
-        # Build behavior tree
-        sequence = py_trees.composites.Sequence("Sequence Behavior")
-        sequence.add_child(start_transform)
-        #sequence.add_child(start_first_actor_trigger)
-        sequence.add_child(driving_to_next_intersection)
-        sequence.add_child(stop)
-        sequence.add_child(endcondition)
-        sequence.add_child(ActorDestroy(self.other_actors[0]))
-
-        return sequence
-    '''
     def _create_behavior(self):
         """
         The scenario defined after is a "follow leading vehicle" scenario. After
@@ -192,52 +131,34 @@ class ConfrontationCross(BasicScenario):
         """
         print(self.other_actors[0], self.ego_vehicles[0])
 
-        # to avoid the other actor blocking traffic, it was spawed elsewhere
         # reset its pose to the required one
-        #start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
 
-        # let the other actor drive until next intersection
         # @todo: We should add some feedback mechanism to respond to ego_vehicle behavior
-        driving_to_next_intersection = py_trees.composites.Parallel(
-            "DrivingTowardsIntersection",
-            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
 
-        start_first_actor_trigger = InTriggerRegion(
-            self.ego_vehicles[0],
-            -11, -1,
-            -35, -25)
         other_loc = self.other_actors[0].get_location()
-        print(type(other_loc))
-        loc = carla.Location(other_loc.x,
-                           other_loc.y+300,
-                           other_loc.z)
+        loc = carla.Location(other_loc.x+100, other_loc.y, other_loc.z)
+        # start and accelerate other vehicle
+        behavior_other = py_trees.composites.Parallel("Waiting for end position",
+                                                      policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL)
         other_forward = BasicAgentBehavior(self.other_actors[0], loc)
-
-        driving_to_next_intersection.add_child(WaypointFollower(self.other_actors[0], self._first_vehicle_speed))
-        driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
-            self.other_actors[0], self._other_actor_stop_in_front_intersection))
+        accelerate_other = AccelerateToVelocity(self.other_actors[0], 1, self._first_vehicle_speed)
 
         # stop vehicle
-        stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake)
+        stop = py_trees.composites.Sequence("Sequence Behavior")
+        stop_trigger = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0],
+                                                  distance=30, name="FinalDistance")
+        stop_other = StopVehicle(self.other_actors[0], self._other_actor_max_brake)
+        stop.add_children([stop_trigger, stop_other])
+        behavior_other.add_children([other_forward, accelerate_other, stop])
 
         # end condition
-        endcondition = py_trees.composites.Parallel("Waiting for end position",
-                                                    policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL)
-        endcondition_part1 = InTriggerDistanceToVehicle(self.other_actors[0],
-                                                        self.ego_vehicles[0],
-                                                        distance=20,
-                                                        name="FinalDistance")
-        endcondition_part2 = StandStill(self.ego_vehicles[0], name="StandStill")
-        endcondition.add_child(endcondition_part1)
-        endcondition.add_child(endcondition_part2)
+        end_condition = StandStill(self.ego_vehicles[0], name="StandStill")
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
-        #sequence.add_child(start_transform)
-        sequence.add_child(other_forward)
-        sequence.add_child(driving_to_next_intersection)
-        sequence.add_child(stop)
-        sequence.add_child(endcondition)
+        sequence.add_child(behavior_other)
+
+        sequence.add_child(end_condition)
         sequence.add_child(ActorDestroy(self.other_actors[0]))
 
         return sequence
