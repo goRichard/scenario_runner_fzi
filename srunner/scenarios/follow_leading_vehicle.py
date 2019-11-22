@@ -151,7 +151,7 @@ class FollowLeadingVehicle(BasicScenario):
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
 
         driving_to_next_intersection.add_child(WaypointFollower(self.other_actors[0], self._first_vehicle_speed))
-
+        driving_to_next_intersection.add_child(KeepVelocity(self.other_actors[0], 10, name="KeepVelocity"))
 
         '''
          This is an atomic behavior to follow waypoints indefinitely
@@ -165,8 +165,8 @@ class FollowLeadingVehicle(BasicScenario):
 
 
 
-        driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
-            self.other_actors[0], self._other_actor_stop_in_front_intersection))
+        #driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
+        #    self.other_actors[0], self._other_actor_stop_in_front_intersection))
 
         '''
     
@@ -203,6 +203,7 @@ class FollowLeadingVehicle(BasicScenario):
 
 
         endcondition_part2 = StandStill(self.ego_vehicles[0], name="StandStill")
+        # endcondition_part3 = StandStill(self.other_actors[0], name="StandStill")
 
         '''
         check if the vehicles stand still (v = 0)
@@ -210,6 +211,7 @@ class FollowLeadingVehicle(BasicScenario):
         '''
         endcondition.add_child(endcondition_part1)
         endcondition.add_child(endcondition_part2)
+        #endcondition.add_child(endcondition_part3)
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")

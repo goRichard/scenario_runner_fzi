@@ -143,6 +143,10 @@ class OppositeVehicleRunningRedLight(BasicScenario):
 
         # Generate plan for WaypointFollower
         turn = 0  # drive straight ahead
+        """
+        turn = -1, drive turn to left
+        turn = 1, drive turn to right
+        """
         plan = []
 
         # generating waypoints until intersection (target_waypoint)
@@ -182,7 +186,7 @@ class OppositeVehicleRunningRedLight(BasicScenario):
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
-        sequence.add_child(ActorTransformSetter(self.other_actors[0], self._other_actor_transform))
+        sequence.add_child(ActorTransformSetter(self.other_actors[0], self._other_actor_transform)) #  This class contains an atomic behavior to set the transform of an actor.
         sequence.add_child(startcondition)
         sequence.add_child(sync_arrival_parallel)
         sequence.add_child(continue_driving)

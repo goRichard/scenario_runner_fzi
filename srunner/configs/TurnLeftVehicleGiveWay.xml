@@ -1,6 +1,6 @@
-<?xml version = '1.0' ?>
+<?xml version="1.0"?>
 <scenarios>
-    <scenario name="TurnLeftVehicleGiveWay_1" type="TurnLeftVehicleGiveWay" town="Town01">
+    <scenario name="TurnLeftVehicleGiveWay" type="TurnLeftVehicleGiveWay" town="Town03">
         <ego_vehicle x="-133.7" y="137.4" z="0.0"  yaw="0" model="vehicle.lincoln.mkz2017" />
         <other_actor  x="-53.4" y="131.7" z="0.0" model="vehicle.tesla.model3" />
     </scenario>

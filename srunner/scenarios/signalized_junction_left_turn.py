@@ -81,7 +81,7 @@ class SignalizedJunctionLeftTurn(BasicScenario):
         first_vehicle_transform = carla.Transform(
             carla.Location(config.other_actors[0].transform.location.x,
                            config.other_actors[0].transform.location.y,
-                           config.other_actors[0].transform.location.z - 500),
+                           config.other_actors[0].transform.location.z-500),
             config.other_actors[0].transform.rotation)
         try:
             first_vehicle = CarlaActorPool.request_new_actor(config.other_actors[0].model, self._other_actor_transform)
@@ -102,18 +102,19 @@ class SignalizedJunctionLeftTurn(BasicScenario):
         sequence = py_trees.composites.Sequence("Sequence Behavior")
 
         # Selecting straight path at intersection
+        turn = 0
         target_waypoint = generate_target_waypoint(
-            CarlaDataProvider.get_map().get_waypoint(self.other_actors[0].get_location()), 0)
-        print(target_waypoint)
+            CarlaDataProvider.get_map().get_waypoint(self.other_actors[0].get_location()), turn)
+
         # Generating waypoint list till next intersection
         plan = []
         wp_choice = target_waypoint.next(1.0)
+
         while not wp_choice[0].is_intersection:
             target_waypoint = wp_choice[0]
             plan.append((target_waypoint, RoadOption.LANEFOLLOW))
             wp_choice = target_waypoint.next(1.0)
 
-        print(wp_choice)
         # adding flow of actors
         actor_source = ActorSource(
             self._world, ['vehicle.tesla.model3', 'vehicle.audi.tt'],
@@ -123,6 +124,7 @@ class SignalizedJunctionLeftTurn(BasicScenario):
         # follow waypoints untill next intersection
         move_actor = WaypointFollower(self.other_actors[0], self._target_vel, plan=plan,
                                       blackboard_queue_name=self._blackboard_queue_name, avoid_collision=True)
+
         # wait
         wait = DriveDistance(self.ego_vehicles[0], self._ego_distance)
 
@@ -134,9 +136,11 @@ class SignalizedJunctionLeftTurn(BasicScenario):
         root.add_child(actor_sink)
         root.add_child(move_actor)
 
+
         sequence.add_child(ActorTransformSetter(self.other_actors[0], self._other_actor_transform))
         sequence.add_child(root)
         sequence.add_child(ActorDestroy(self.other_actors[0]))
+
 
         return sequence
 

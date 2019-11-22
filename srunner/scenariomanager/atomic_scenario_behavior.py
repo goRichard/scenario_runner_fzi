@@ -437,8 +437,7 @@ class InTriggerDistanceToLocationAlongRoute(AtomicBehavior):
 
             actor_distance, _ = get_distance_along_route(self._route, current_location)
 
-            if (self._location_distance < actor_distance + self._distance and
-                actor_distance < self._location_distance) or \
+            if (actor_distance + self._distance > self._location_distance > actor_distance) or \
                     self._location_distance < 1.0:
                 new_status = py_trees.common.Status.SUCCESS
 

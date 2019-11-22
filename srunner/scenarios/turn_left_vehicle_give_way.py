@@ -27,16 +27,19 @@ class TurnLeftVehicleGiveWay(BasicScenario):
     category = "TurnLeftVehicleGiveWay"
 
     # ego vehicle parameters
-    _ego_max_velocity_allowed = 15  # Maximum allowed velocity [m/s]
+    _ego_vehicle_max_velocity = 20  # Maximum allowed velocity [m/s]
     # _ego_avg_velocity_expected = 4  # Average expected velocity [m/s]
     # _ego_expected_driven_distance = 70  # Expected driven distance [m]
     _ego_distance_to_traffic_light = 20  # Trigger distance to traffic light [m]
-    _ego_distance_to_drive = 50  # Allowed distance to drive, wait the ego vehicle drive for this allowed distance
+    _ego_vehicle_driven_distance = 105  # Allowed distance to drive, wait the ego vehicle drive for this allowed distance
 
     # other vehicle
-    _other_actor_target_velocity = 7  # Target velocity of other vehicle [m/s]
+    _other_actor_target_velocity = 10  # Target velocity of other vehicle [m/s]
     _other_actor_max_brake = 1.0  # Maximum brake of other vehicle
-    _other_actor_distance = 50  # Distance the other vehicle should drive
+    _other_actor_distance = 100  # Distance the other vehicle should drive
+
+    # safety distance
+    _safe_distance = 5
 
     def __init__(self, world, ego_vehicles, config, randomize=False, debug_mode=False, criteria_enable=True,
                  timeout=80):
@@ -79,7 +82,7 @@ class TurnLeftVehicleGiveWay(BasicScenario):
         first_vehicle_transform = carla.Transform(
             carla.Location(config.other_actors[0].transform.location.x,
                            config.other_actors[0].transform.location.y,
-                           config.other_actors[0].transform.location.z - 500),
+                           config.other_actors[0].transform.location.z),
             config.other_actors[0].transform.rotation
         )
 
@@ -89,46 +92,72 @@ class TurnLeftVehicleGiveWay(BasicScenario):
 
     def _create_behavior(self):
 
-
-
-        sequence = py_trees.composites.Sequence("Sequence Behavior")
-
-
-        # Selecting straight path at intersection
-
+        # Start Condition
+        start_condition = InTriggerDistanceToNextIntersection(self.ego_vehicles[0], self._ego_distance_to_traffic_light,
+                                                              name="InTriggerDistanceToNextIntersection")
         # Generating waypoint list till next intersection
 
-        # adding flow of actors
+        turn = -1  # drive straight ahead
+        """
+        turn = -1, drive turn to left
+        turn = 1, drive turn to right
+        """
+        plan = []
 
-        # destroying flow of actors
+        plan, target_waypoint = generate_target_waypoint_list(
+            CarlaDataProvider.get_map().get_waypoint(self.other_actors[0].get_location()), turn)
 
-        # move actor
+        wp_choice = target_waypoint.next(5.0)
+        while len(wp_choice) == 1:
+            target_waypoint = wp_choice[0]
+            plan.append((target_waypoint, RoadOption.LANEFOLLOW))
+            wp_choice = target_waypoint.next(5.0)
 
-        move_actor = BasicAgentBehavior(self.other_actors[0], carla.Location(x=-80, y=150, z=0), target_speed=30.0,
-                                        name="BasicAgentBehavior")
+        # continue driving
+        continue_driving = py_trees.composites.Parallel(
+            "ContinueDriving",
+            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
 
+        continue_driving_waypoints = WaypointFollower(self.other_actors[0], self._other_actor_target_velocity,
+                                                      plan=plan)
 
+        continue_driving_distance = DriveDistance(
+            self.other_actors[0],
+            self._other_actor_distance,
+            name="Distance")
+
+        sub_sequence_1 = py_trees.composites.Sequence("sub sequence behaviour")
+        situation_1 = InTimeToArrivalToVehicle(self.other_actors[0], self.ego_vehicles[0], self._safe_distance,
+                                               name="TriggerDistanceToVehicle")
+        other_actor_stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake, name="Stopping")
+
+        sub_sequence_1.add_child(situation_1)
+        sub_sequence_1.add_child(other_actor_stop)
+
+        # move actor, using waypointfollowe, still don not understand how to use BasicAgentBehaviour
 
         # wait
         wait = DriveDistance(
             self.ego_vehicles[0],
-            self._ego_distance_to_drive,
+            self._ego_vehicle_driven_distance,
             name="DriveDistance")
 
         # behaviour tree
         root = py_trees.composites.Parallel(
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
-        root.add_child(wait)
-        root.add_child(move_actor)
 
-        ## build the sequence behaviour tree
+        root.add_child(continue_driving_distance)
+        root.add_child(continue_driving_waypoints)
+        root.add_child(sub_sequence_1)
+        # build the sequence behaviour tree
+        sequence = py_trees.composites.Sequence("Sequence Behavior")
         sequence.add_child(ActorTransformSetter(self.other_actors[0], self._other_actor_transform))
+        sequence.add_child(start_condition)
         sequence.add_child(root)
+        sequence.add_child(wait)
         sequence.add_child(ActorDestroy(self.other_actors[0]))
 
-
-
-
+        return sequence
 
     def _create_test_criteria(self):
         criteria = []
