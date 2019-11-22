@@ -28,6 +28,7 @@ from srunner.scenariomanager.timer import TimeOut
 from srunner.scenarios.basic_scenario import *
 from srunner.tools.scenario_helper import *
 
+
 MEET_AT_INTERSECTION_SCENARIOS = ["MeetAtIntersection"]
 
 
@@ -100,9 +101,9 @@ class MeetAtIntersection(BasicScenario):
         '''
         start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
 
-        target_location = [self.other_actors[0].transform.location.x,
-                           self.other_actors[0].transform.location.y + 200,
-                           self.other_actors[0].transform.location.z]
+        target_location = carla.Location(self.other_actors[0].transform.location.x,
+                                         self.other_actors[0].transform.location.y + 200,
+                                         self.other_actors[0].transform.location.z)
 
         move_actor = BasicAgentBehavior(self.other_actors[0], target_location,
                                         self._other_actor_target_speed, name="BasicAgentBehavior")
@@ -117,6 +118,7 @@ class MeetAtIntersection(BasicScenario):
                                                       self.ego_vehicles[0],
                                                       distance=20,
                                                       name="FinalDistance"))
+
         sequence.add_child(StandStill(self.other_actors[0], name="StandStill"))
         sequence.add_child(ActorDestroy(self.other_actors[0]))
 
