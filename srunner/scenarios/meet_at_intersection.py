@@ -28,7 +28,6 @@ from srunner.scenariomanager.timer import TimeOut
 from srunner.scenarios.basic_scenario import *
 from srunner.tools.scenario_helper import *
 
-
 MEET_AT_INTERSECTION_SCENARIO = ["MeetAtIntersection"]
 
 
@@ -45,12 +44,17 @@ class MeetAtIntersection(BasicScenario):
         self._other_actor_max_brake = 1.0  # brake value for the other actor
         # Timeout of scenario in seconds
         self.timeout = timeout
+        self._traffic_light = None
+        self._goals = [(-150.15, 131.7)]
         super(MeetAtIntersection, self).__init__("MeetAtIntersection",
                                                  ego_vehicles,
                                                  config,
                                                  world,
                                                  debug_mode,
                                                  criteria_enable=criteria_enable)
+        self._traffic_light = CarlaDataProvider.get_next_traffic_light(self.ego_vehicles[0], False)
+        self._traffic_light.set_state(carla.TrafficLightState.Green)
+        self._traffic_light.set_green_time(self.timeout)
 
         if randomize:
             self._ego_other_distance_start = random.randint(4, 8)
@@ -101,25 +105,42 @@ class MeetAtIntersection(BasicScenario):
         '''
         start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
 
-        target_location = carla.Location(self.other_actors[0].transform.location.x,
-                                         self.other_actors[0].transform.location.y + 200,
-                                         self.other_actors[0].transform.location.z)
+        target_location = carla.Location(self._goals[0][0], self._goals[0][1], 0.0)
+        move_actor = BasicAgentBehavior(self.other_actors[0], target_location, name="BasicAgentBehavior")
 
-        move_actor = BasicAgentBehavior(self.other_actors[0], target_location,
-                                        self._other_actor_target_speed, name="BasicAgentBehavior")
+        driving_to_next_intersection = py_trees.composites.Parallel(
+            "DrivingTowardsIntersection",
+            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
+
+        driving_to_next_intersection.add_child(
+            InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], 40,
+                                       name="TriggerDistanceToVehicle"))
+
+        driving_to_next_intersection.add_child(move_actor)
+
+       # driving_to_next_intersection.add_child(KeepVelocity(self.other_actors[0], 20, name = "KeepVelocity"))
+
+        # stop
+        stop = StopVehicle(self.other_actors[0],  self._other_actor_max_brake, name="Stopping")
 
         # end condition
+
+        end_condition = py_trees.composites.Parallel("Waiting for end position",
+                                                    policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL)
+        end_condition_part1 = StandStill(self.ego_vehicles[0], name="StandStill")
+        end_condition_part2 = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], 40,
+                                       name="TriggerDistanceToVehicle")
+
+        end_condition.add_child(end_condition_part1)
+        end_condition.add_child(end_condition_part2)
+
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
         sequence.add_child(start_transform)
-        sequence.add_child(move_actor)
-        sequence.add_child(InTriggerDistanceToVehicle(self.other_actors[0],
-                                                      self.ego_vehicles[0],
-                                                      distance=20,
-                                                      name="FinalDistance"))
-
-        sequence.add_child(StandStill(self.other_actors[0], name="StandStill"))
+        sequence.add_child(driving_to_next_intersection)
+        sequence.add_child(stop)
+        sequence.add_child(end_condition)
         sequence.add_child(ActorDestroy(self.other_actors[0]))
 
         return sequence

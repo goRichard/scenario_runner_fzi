@@ -35,7 +35,7 @@ from srunner.scenarios.control_loss import *
 from srunner.scenarios.follow_leading_vehicle import *
 from srunner.scenarios.maneuver_opposite_direction import *
 from srunner.scenarios.master_scenario import *
-from srunner.scenarios.meet_at_intersection import MEET_AT_INTERSECTION_SCENARIO
+from srunner.scenarios.meet_at_intersection import *
 from srunner.scenarios.no_signal_junction_crossing import *
 from srunner.scenarios.object_crash_intersection import *
 from srunner.scenarios.object_crash_vehicle import *
@@ -71,7 +71,7 @@ SCENARIOS = {
     "TestScenario": TEST_SCENARIO,
     "SetLevelIntersection": SETLEVEL_INTERSECTION,
     "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A,
-    "MeetAtIntersection": MEET_AT_INTERSECTION_SCENARIO
+    "MeetAtIntersection": MEET_AT_INTERSECTION_SCENARIO,
 }
 
 
