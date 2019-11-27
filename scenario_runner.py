@@ -71,7 +71,7 @@ SCENARIOS = {
     "TestScenario": TEST_SCENARIO,
     "SetLevelIntersection": SETLEVEL_INTERSECTION,
     "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A,
-    "MeetAtIntersection": MEET_AT_INTERSECTION_SCENARIO,
+    "MeetAtIntersection": MEET_AT_INTERSECTION_SCENARIOS,
 }
 
 

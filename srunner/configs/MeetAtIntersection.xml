@@ -1,6 +1,10 @@
 <?xml version="1.0"?>
 <scenarios>
-    <scenario name="MeetAtIntersection_1" type="MeetAtIntersection" town="Town03">
+    <scenario name="MeetAtIntersectionTrial_1" type="MeetAtIntersectionTrial" town="Town03">
+        <ego_vehicle x="-123.7" y="137.4" z="0.2" yaw="0" model="vehicle.lincoln.mkz2017" />
+        <other_actor x="-33.4" y="131.7" z="0.0" yaw="180" model="vehicle.tesla.model3" />
+     </scenario>
+    <scenario name="MeetAtIntersectionSync_1" type="MeetAtIntersectionSync" town="Town03">
         <ego_vehicle x="-133.7" y="137.4" z="0.2" yaw="0" model="vehicle.lincoln.mkz2017" />
         <other_actor x="-53.4" y="131.7" z="0.0" yaw="180" model="vehicle.tesla.model3" />
      </scenario>
