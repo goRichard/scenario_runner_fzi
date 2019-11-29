@@ -115,7 +115,7 @@ class ScenarioRunner(object):
         # Once we have a client we can retrieve the world that is currently
         # running.
         self.world = self.client.get_world()
-
+        self.manager = ScenarioManager(self.world)
         settings = self.world.get_settings()
         settings.fixed_delta_seconds = 1.0 / self.frame_rate
         self.world.apply_settings(settings)

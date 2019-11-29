@@ -224,9 +224,6 @@ class ScenarioManager(object):
                         (self.other_actors[i].get_location().x - self.ego_vehicles[0].get_location().x) ** 2 + (
                                 self.other_actors[i].get_location().y - self.ego_vehicles[0].get_location().y) ** 2)
                     distances.append(distance)
-                    relative_velocity = np.array(self.ego_vehicles[i].get_velocity()) - \
-                                        np.array([self.other_actors[i].get_velocity()])
-                    self._relative_velocity.append(relative_velocity)
                     # print('actor ' + str(i) + ': ' + str(distance))
                 if distances[0] < self.shortest_distance:
                     self.shortest_distance = distances[0]
@@ -245,8 +242,6 @@ class ScenarioManager(object):
         # write recorded data to file
         file = open("data.txt", "a+")
         file.write("shortest distance:" + str(self.shortest_distance) + ',')
-        for relative_veloctiy in self._relative_velocity:
-            file.write("relative velocity:" + str(relative_veloctiy) + ",")
         file.close()
         CarlaDataProvider.cleanup()
 
