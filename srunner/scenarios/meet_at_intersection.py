@@ -117,13 +117,13 @@ class MeetAtIntersectionTrial(BasicScenario):
         drive_behaviour_to_next_intersection = py_trees.composites.Parallel('drive_to_next_intersection',
                                                        policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
         move_actor = BasicAgentBehavior(self.other_actors[0], target_location=target_location)
-        to_next_intersection_10 = InTriggerDistanceToNextIntersection(self.other_actors[0], distance=10,
+        to_next_intersection_15 = InTriggerDistanceToNextIntersection(self.other_actors[0], distance=15,
                                                                      name="InTriggerDistanceToNextIntersection")
 
 
 
         drive_behaviour_to_next_intersection.add_child(move_actor)
-        drive_behaviour_to_next_intersection.add_child(to_next_intersection_10)
+        drive_behaviour_to_next_intersection.add_child(to_next_intersection_15)
 
         # stop
         stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake, name="Stopping")
@@ -133,11 +133,11 @@ class MeetAtIntersectionTrial(BasicScenario):
                                                          policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
 
         wait_for_traffic_light_1 = WaitForTrafficLightState(self._traffic_light_other, carla.TrafficLightState.Red)
-        two_vehicles_distance_30 = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], 30,
+        two_vehicles_distance_35 = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], 35,
                                                               name="TriggerDistanceToVehicle")
 
         #drive_behaviour_2.add_child(wait_for_traffic_light_1)
-        drive_behaviour_2.add_child(two_vehicles_distance_30)
+        drive_behaviour_2.add_child(two_vehicles_distance_35)
 
 
         # continue_driving
@@ -166,7 +166,7 @@ class MeetAtIntersectionTrial(BasicScenario):
         sequence.add_child(start_transform)
         sequence.add_child(drive_behaviour_to_next_intersection)
         sequence.add_child(stop)
-        sequence.add_child(two_vehicles_distance_30)
+        sequence.add_child(two_vehicles_distance_35)
         sequence.add_child(continue_driving)
         sequence.add_child(stop)
         sequence.add_child(end_condition)

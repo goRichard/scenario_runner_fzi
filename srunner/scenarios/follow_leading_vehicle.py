@@ -22,6 +22,7 @@ import py_trees
 
 import carla
 
+from srunner.scenariomanager.scenario_manager import *
 from srunner.scenariomanager.atomic_scenario_behavior import *
 from srunner.scenariomanager.atomic_scenario_criteria import *
 from srunner.scenariomanager.timer import TimeOut

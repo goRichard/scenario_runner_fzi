@@ -27,7 +27,6 @@ from pynput.keyboard import Key, Controller
 
 
 class Scenario(object):
-
     """
     Basic scenario class. This class holds the behavior_tree describing the
     scenario and the test criteria.
@@ -91,7 +90,6 @@ class Scenario(object):
 
 
 class ScenarioManager(object):
-
     """
     Basic scenario manager class. This class holds all functionality
     required to start, and analyze a scenario.
@@ -130,6 +128,7 @@ class ScenarioManager(object):
         self.start_system_time = None
         self.end_system_time = None
         self.shortest_distance = 1000.0
+        self._relative_velocity = []
 
         self.keyboard = Controller()
 
@@ -180,7 +179,7 @@ class ScenarioManager(object):
         end_game_time = GameTime.get_time()
 
         self.scenario_duration_system = self.end_system_time - \
-            self.start_system_time
+                                        self.start_system_time
         self.scenario_duration_game = end_game_time - start_game_time
 
         if self.scenario_tree.status == py_trees.common.Status.FAILURE:
@@ -221,10 +220,14 @@ class ScenarioManager(object):
                     self._running = False
                 distances = []
                 for i in range(len(self.other_actors)):
-                    distance = np.sqrt((self.other_actors[i].get_location().x - self.ego_vehicles[0].get_location().x)**2 + (
-                                self.other_actors[i].get_location().y - self.ego_vehicles[0].get_location().y)**2)
+                    distance = np.sqrt(
+                        (self.other_actors[i].get_location().x - self.ego_vehicles[0].get_location().x) ** 2 + (
+                                self.other_actors[i].get_location().y - self.ego_vehicles[0].get_location().y) ** 2)
                     distances.append(distance)
-                    #print('actor ' + str(i) + ': ' + str(distance))
+                    relative_velocity = np.array(self.ego_vehicles[i].get_velocity()) - \
+                                        np.array([self.other_actors[i].get_velocity()])
+                    self._relative_velocity.append(relative_velocity)
+                    # print('actor ' + str(i) + ': ' + str(distance))
                 if distances[0] < self.shortest_distance:
                     self.shortest_distance = distances[0]
 
@@ -241,7 +244,10 @@ class ScenarioManager(object):
 
         # write recorded data to file
         file = open("data.txt", "a+")
-        file.write(str(self.shortest_distance) + ',')
+        file.write("shortest distance:" + str(self.shortest_distance) + ',')
+        for relative_veloctiy in self._relative_velocity:
+            file.write("relative velocity:" + str(relative_veloctiy) + ",")
+        file.close()
         CarlaDataProvider.cleanup()
 
     def analyze_scenario(self, stdout, filename, junit):
