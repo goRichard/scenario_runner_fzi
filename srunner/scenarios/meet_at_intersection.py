@@ -145,7 +145,7 @@ class MeetAtIntersectionTrial(BasicScenario):
         sequence.add_child(drive_behaviour_to_next_intersection)
         sequence.add_child(stop)
         sequence.add_child(end_condition_part1)
-        sequence.add_child(ActorDestroy(self.other_actors[0]))
+        #sequence.add_child(ActorDestroy(self.other_actors[0]))
         return sequence
 
     def _create_test_criteria(self):

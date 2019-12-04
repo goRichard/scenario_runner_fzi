@@ -18,7 +18,7 @@ import threading
 import py_trees
 
 import numpy as np
-
+import math
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime, TimeOut
@@ -236,7 +236,7 @@ class ScenarioManager(object):
                 if distances[i] < self.shortest_distance:
                     self.shortest_distance = distances[i]
 
-    def stop_scenario(self):
+    def stop_scenario(self, epoch=100):
         """
         This function triggers a proper termination of a scenario
         """
@@ -247,13 +247,12 @@ class ScenarioManager(object):
         self.keyboard.press(Key.esc)
         self.keyboard.release(Key.esc)
 
-        # define the time_stamp_max for each repetition:
-
-        # write recorded data to file
-        file = open("data_" + str(int(time.time() * 1000)) + ".txt", "a+")
-        for i in range(len(self._timestamp)):
-            file.write("timestamp: "+ str(self._timestamp[i]) + "\n")
-        file.close()
+        # write recorded data to file and create new recording file every 5 seconds
+        for n in range(int(math.ceil(len(self._timestamp)/epoch))):
+            file = open("data_" + str(self._timestamp[n*epoch]) + ".txt", "a+")
+            for i in range(len(self._timestamp[n*epoch:n*epoch+epoch+1])):
+                file.write(str(self._timestamp[i]) + "\n")
+            file.close()
         CarlaDataProvider.cleanup()
 
     def analyze_scenario(self, stdout, filename, junit):

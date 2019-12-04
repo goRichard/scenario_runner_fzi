@@ -284,8 +284,10 @@ class ScenarioRunner(object):
             self.run_openscenario(args)
             return
 
+
         # Setup and run the scenarios for repetition times
         y_values = np.arange(-234.0, -204.0, 1.0)  # 30 repetitions
+        file = open("data.txt", "a+")
 
         for rep in range(int(args.repetitions)):
 
@@ -308,8 +310,9 @@ class ScenarioRunner(object):
 
             # Execute each configuration
             config_counter = 0
+            print("scenarion configurations : {}\n".format(scenario_configurations))
             for config in scenario_configurations:
-                #file.write(str(config.other_actors[0].transform.location.y) + ',')
+                file.write(str(config.other_actors[0].transform.location.y) + ',')
                 print(config.town)
                 if not self.load_world(args, config.town):
                     self.cleanup()
@@ -341,6 +344,8 @@ class ScenarioRunner(object):
                 self.load_and_run_scenario(args, config, scenario)
 
                 config_counter += 1
+
+
 
             self.cleanup(ego=(not args.waitForEgo))
 
