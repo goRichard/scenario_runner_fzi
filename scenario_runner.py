@@ -22,6 +22,7 @@ from datetime import datetime
 import importlib
 import inspect
 import numpy as np
+import time
 
 import carla
 
@@ -93,7 +94,7 @@ class ScenarioRunner(object):
     client_timeout = 30.0  # in seconds
     wait_for_world = 20.0  # in seconds
     frame_rate = 20.0      # in Hz
-
+    single_tick = (1.0/20.0) * 1000 # in milliseconds
     # CARLA world and scenario handlers
     world = None
     manager = None
@@ -114,8 +115,8 @@ class ScenarioRunner(object):
 
         # Once we have a client we can retrieve the world that is currently
         # running.
+        # the sampling frequency
         self.world = self.client.get_world()
-        self.manager = ScenarioManager(self.world)
         settings = self.world.get_settings()
         settings.fixed_delta_seconds = 1.0 / self.frame_rate
         self.world.apply_settings(settings)
@@ -285,7 +286,6 @@ class ScenarioRunner(object):
 
         # Setup and run the scenarios for repetition times
         y_values = np.arange(-234.0, -204.0, 1.0)  # 30 repetitions
-        file = open("data.txt", "a+")
 
         for rep in range(int(args.repetitions)):
 
@@ -300,6 +300,11 @@ class ScenarioRunner(object):
             #scenario_configurations[0].other_actors[0].transform.location.y = y_values[rep]
             #print("now using y: " + str(scenario_configurations[0].other_actors[0].transform.location.y))
             # todo: write to file: (x and) y position of other actor 0
+
+
+
+
+
 
             # Execute each configuration
             config_counter = 0
@@ -433,7 +438,6 @@ if __name__ == '__main__':
         print("Please specify a scenario using '--scenario SCENARIONAME'\n\n")
         PARSER.print_help(sys.stdout)
         sys.exit(0)
-
     SCENARIORUNNER = None
     try:
         SCENARIORUNNER = ScenarioRunner(ARGUMENTS)

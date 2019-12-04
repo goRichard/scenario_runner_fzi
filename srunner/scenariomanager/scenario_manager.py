@@ -110,6 +110,7 @@ class ScenarioManager(object):
         """
         Init requires scenario as input
         """
+        self.start_time = None
         self.scenario = None
         self.scenario_tree = None
         self.scenario_class = None
@@ -129,6 +130,7 @@ class ScenarioManager(object):
         self.end_system_time = None
         self.shortest_distance = 1000.0
         self._relative_velocity = []
+        self._timestamp = []                    #create a timestamp list for storing each time stamp
 
         self.keyboard = Controller()
 
@@ -168,8 +170,7 @@ class ScenarioManager(object):
         """
         print("ScenarioManager: Running scenario {}".format(self.scenario_tree.name))
         self.start_system_time = time.time()
-        start_game_time = GameTime.get_time()
-
+        start_game_time = GameTime.get_time()       # start_game_time = 0.0
         self._running = True
 
         while self._running:
@@ -177,10 +178,14 @@ class ScenarioManager(object):
 
         self.end_system_time = time.time()
         end_game_time = GameTime.get_time()
-
         self.scenario_duration_system = self.end_system_time - \
                                         self.start_system_time
         self.scenario_duration_game = end_game_time - start_game_time
+
+        print("scenarion duraiton system: {}".format(self.scenario_duration_system))
+        print("scenarion duraiton game: {}".format(self.scenario_duration_game))
+        print("time stamp list: {}".format(self._timestamp))
+        print("time stamp list length {}".format(len(self._timestamp)))
 
         if self.scenario_tree.status == py_trees.common.Status.FAILURE:
             print("ScenarioManager: Terminated due to failure")
@@ -200,15 +205,18 @@ class ScenarioManager(object):
             if self._running and self._timestamp_last_run < timestamp.elapsed_seconds:
                 self._timestamp_last_run = timestamp.elapsed_seconds
 
+                tick_time = int(time.time() * 1000)  # get every tick seconds with timestamp
+                self._timestamp.append(tick_time)    # store the time stamp in list
+
                 if self._debug_mode:
                     print("\n--------- Tick ---------\n")
 
                 # Update game time and actor information
-                GameTime.on_carla_tick(timestamp)
+                GameTime.on_carla_tick(timestamp)           # GameTime.on_carla_tick(timestamp) = None
                 CarlaDataProvider.on_carla_tick()
 
                 # Tick scenario
-                self.scenario_tree.tick_once()
+                self.scenario_tree.tick_once()   # None
 
                 if self._debug_mode:
                     print("\n")
@@ -225,8 +233,8 @@ class ScenarioManager(object):
                                 self.other_actors[i].get_location().y - self.ego_vehicles[0].get_location().y) ** 2)
                     distances.append(distance)
                     # print('actor ' + str(i) + ': ' + str(distance))
-                if distances[0] < self.shortest_distance:
-                    self.shortest_distance = distances[0]
+                if distances[i] < self.shortest_distance:
+                    self.shortest_distance = distances[i]
 
     def stop_scenario(self):
         """
@@ -239,9 +247,12 @@ class ScenarioManager(object):
         self.keyboard.press(Key.esc)
         self.keyboard.release(Key.esc)
 
+        # define the time_stamp_max for each repetition:
+
         # write recorded data to file
-        file = open("data.txt", "a+")
-        file.write("shortest distance:" + str(self.shortest_distance) + ',')
+        file = open("data_" + str(int(time.time() * 1000)) + ".txt", "a+")
+        for i in range(len(self._timestamp)):
+            file.write("timestamp: "+ str(self._timestamp[i]) + "\n")
         file.close()
         CarlaDataProvider.cleanup()
 

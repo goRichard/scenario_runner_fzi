@@ -37,7 +37,7 @@ class MeetAtIntersectionTrial(BasicScenario):
         self.timeout = timeout
         self._traffic_light_other = None
         self._traffic_light_ego = None
-        self._goals = [(-133.4, 131.7)]
+        self._goals = [(-120.4, 131.7)]
         super(MeetAtIntersectionTrial, self).__init__("MeetAtIntersection",
                                                       ego_vehicles,
                                                       config,
@@ -128,28 +128,6 @@ class MeetAtIntersectionTrial(BasicScenario):
         # stop
         stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake, name="Stopping")
 
-        # drive_behaviour_2
-        drive_behaviour_2 = py_trees.composites.Parallel("Driving Behaviour 2",
-                                                         policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
-
-        wait_for_traffic_light_1 = WaitForTrafficLightState(self._traffic_light_other, carla.TrafficLightState.Red)
-        two_vehicles_distance_35 = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], 35,
-                                                              name="TriggerDistanceToVehicle")
-
-        #drive_behaviour_2.add_child(wait_for_traffic_light_1)
-        drive_behaviour_2.add_child(two_vehicles_distance_35)
-
-
-        # continue_driving
-
-        continue_driving = py_trees.composites.Parallel("Continue Driving",
-                                                        policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
-
-        continue_driving_behaviour = KeepVelocity(self.other_actors[0], 10, name="KeepVelocity")
-
-        continue_driving.add_child(continue_driving_behaviour)
-        continue_driving.add_child(move_actor)
-
         # end condition
 
         end_condition = py_trees.composites.Parallel("Waiting for end position",
@@ -166,13 +144,8 @@ class MeetAtIntersectionTrial(BasicScenario):
         sequence.add_child(start_transform)
         sequence.add_child(drive_behaviour_to_next_intersection)
         sequence.add_child(stop)
-        sequence.add_child(two_vehicles_distance_35)
-        sequence.add_child(continue_driving)
-        sequence.add_child(stop)
-        sequence.add_child(end_condition)
+        sequence.add_child(end_condition_part1)
         sequence.add_child(ActorDestroy(self.other_actors[0]))
-        return sequence
-
         return sequence
 
     def _create_test_criteria(self):
@@ -209,7 +182,7 @@ class MeetAtIntersectionSynC(BasicScenario):
         self._traffic_light = None
 
         # set the goals for other autos
-        self._goals = [(-150.15, 131.7)]
+        self._goals = [(-140.15, 131.7)]
         super(MeetAtIntersectionSynC, self).__init__("MeetAtIntersection",
                                                      ego_vehicles,
                                                      config,
@@ -255,6 +228,12 @@ class MeetAtIntersectionSynC(BasicScenario):
                                          0.0)  # the target location of other vehicle
         move_actor = BasicAgentBehavior(self.other_actors[0], target_location, name="BasicAgentBehavior")
 
+        distance_to_ego_vehicles = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], distance=10)
+
+        parallel_drive_behaviour_1 = py_trees.composites.Parallel("DrivingTowardsEgoVehicle",
+            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
+        parallel_drive_behaviour_1.add_child(move_actor)
+        parallel_drive_behaviour_1.add_child(distance_to_ego_vehicles)
         # stop
         stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake, name="Stopping")
 
@@ -264,13 +243,15 @@ class MeetAtIntersectionSynC(BasicScenario):
                                                      policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL)
 
         end_condition_part1 = StandStill(self.other_actors[0],
-                                         name="TriggerDistanceToVehicle")  # standstill for other_vehicle
+                                         name="StandStillOther")  # standstill for other_vehicle
+        end_condition_part2 = StandStill(self.ego_vehicles[0], name="StandStillEgo" )
         end_condition.add_child(end_condition_part1)
+        end_condition.add_child(end_condition_part2)
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
         sequence.add_child(start_transform)
-        sequence.add_child(move_actor)
+        sequence.add_child(parallel_drive_behaviour_1)
         sequence.add_child(stop)
         sequence.add_child(end_condition)
         sequence.add_child(ActorDestroy(self.other_actors[0]))
