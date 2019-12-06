@@ -27,19 +27,22 @@ class vehicle(object):
                     param = {'x': str(x), 'y': str(y), 'yaw': str(yaw), 'model': str(model)}
                     self.param_set.append(param)
 
+vehicle_param_set = []
+
 
 model = 'vehicle.tesla.model3' #param
 name = 'ConfrontationCross_'  # param
-scenario_type = "ConfrontationCross"  # param
-town = 'Town2'
+scenario_type = "ConfrontationCross3"  # param
+town = 'Town2'  # param
 
-vehicle_param_set = []
-# car parameters
-vehicle1 = vehicle(x_i=0, x_f=2, x_step=1, y_i=0, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
+
+# set other car parameters, the first vehicle is ego vehicle
+ego_vehicle1 = vehicle(x_i=0, x_f=2, x_step=1, y_i=0, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
 vehicle2 = vehicle(x_i=3, x_f=5, x_step=1, y_i=-1, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
 vehicle3 = vehicle(x_i=6, x_f=7, x_step=1, y_i=-1, y_f=2, y_step=1, yaw_i=0, yaw_f=2, yaw_step=1, model=model)
 
-vehicle_param_set.append(vehicle1.param_set)
+# add other car parameters to vehicle parameter set
+vehicle_param_set.append(ego_vehicle1.param_set)
 vehicle_param_set.append(vehicle2.param_set)
 vehicle_param_set.append(vehicle3.param_set)
 
@@ -54,6 +57,7 @@ while stop:
     scenario = SubElement(scenarios, 'scenario',
                           attrib={'name': name+str(i), 'type': scenario_type,
                                   'town': town})
+    #vehicle = SubElement(scenario, 'ego_vehicle', attrib=ego_vehicle_param)
     temp = var[0]
     vehicle = SubElement(scenario, 'ego_vehicle', attrib=vehicle_param_set[0][var[0]])
     for n in range(1, num_vehicle):
@@ -71,7 +75,7 @@ while stop:
             var[n - 1] += 1
 
 mydata = prettify(scenarios)
-myfile = open("{}}.xml".format(scenario_type), "w")
+myfile = open("{}.xml".format(scenario_type), "w")
 myfile.write(mydata)
 
 # for vehicle_param in vehicle_param_set:
