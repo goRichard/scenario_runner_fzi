@@ -144,6 +144,19 @@ class World(object):
 
         self.recording_enabled = False
         self.recording_start = 0
+        self.init_cam()
+
+    def init_cam(self):
+        camera_bp = self.world.get_blueprint_library().find('sensor.camera.depth')
+        camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
+        self.camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.player)
+        print('created %s' % self.camera.type_id)
+
+        # Now we register the function that will be called each time the sensor
+        # receives an image. In this example we are saving the image to disk
+        # converting the pixels to gray-scale.
+        cc = carla.ColorConverter.LogarithmicDepth
+        self.camera.listen(lambda image: image.save_to_disk('_out/%06d.png' % image.frame, cc))
 
     ########
     @staticmethod
@@ -849,7 +862,7 @@ def game_loop(args):
     try:
         client = carla.Client(args.host, args.port)
         client.set_timeout(4.0)
-
+        print(client.get_client_version())
         display = None
         #hud
         hud = None
