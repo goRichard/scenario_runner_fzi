@@ -139,8 +139,7 @@ class ScenarioManager(object):
         self._ego_vehicles_parameters = []
         self._other_vehicles_parameters = []
 
-        self.file = open("data_" + ".csv", "a+", newline="")
-        self.writer = csv.writer(self.file, delimiter=',')
+
         world.on_tick(self._tick_scenario)
 
     def load_scenario(self, scenario):
@@ -186,7 +185,9 @@ class ScenarioManager(object):
         self._running = True
 
         # create new file
-
+        self.file = open("data_" + str(int(self.start_system_time *1000))+".csv", "a", newline="")
+        self.writer = csv.writer(self.file, delimiter=',')
+        self.writer.writerow(["Timestamp", "id_ego_vehicles", "id_other_actors"])
 
 
         while self._running:
@@ -253,37 +254,18 @@ class ScenarioManager(object):
                     # print('actor ' + str(i) + ': ' + str(distance))
                 if distances[i] < self.shortest_distance:
                     self.shortest_distance = distances[i]
-
-                for i in range(len(self.ego_vehicles)):
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_transform().rotation.pitch)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_transform().rotation.yaw)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_transform().rotation.roll)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_velocity().x)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_velocity().y)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_velocity().z)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_angular_velocity().x)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_angular_velocity().y)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_angular_velocity().z)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_acceleration().x)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_acceleration().y)
-                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_acceleration().z)
-
-                for j in range(len(self.other_actors)):
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_transform().rotation.pitch)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_transform().rotation.yaw)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_transform().rotation.roll)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_velocity().x)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_velocity().y)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_velocity().z)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_angular_velocity().x)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_angular_velocity().y)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_angular_velocity().z)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_acceleration().x)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_acceleration().y)
-                    self._other_vehicles_parameters.append(self.other_actors[i].get_acceleration().z)
-
-                self.writer.writerow([tick_time] + self._ego_vehicles_parameters + self._other_vehicles_parameters)
-
+                self.writer.writerow([tick_time, self.ego_vehicles[0].get_transform().pitch,
+                                     self.ego_vehicles[0].get_transform().yaw,
+                                      self.ego_vehicles[0].get_transform().roll,
+                                      self.ego_vehicles[0].get_velocity().x,
+                                      self.ego_vehicles[0].get_velocity().y,
+                                      self.ego_vehicles[0].get_velocity().z,
+                                      self.ego_vehicles[0].get_angular_velocity().x,
+                                      self.ego_vehicles[0].get_angular_velocity().y,
+                                      self.ego_vehicles[0].get_angular_velocity().z,
+                                      self.ego_vehicles[0].get_acceleration().x,
+                                      self.ego_vehicles[0].get_acceleration().y,
+                                      self.ego_vehicles[0].get_acceleration().z])
 
     def stop_scenario(self):
         """
