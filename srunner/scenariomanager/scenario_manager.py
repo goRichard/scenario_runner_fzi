@@ -18,7 +18,7 @@ import threading
 import py_trees
 
 import numpy as np
-import math
+import csv
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime, TimeOut
@@ -130,10 +130,17 @@ class ScenarioManager(object):
         self.end_system_time = None
         self.shortest_distance = 1000.0
         self._relative_velocity = []
-        self._timestamp = []                    #create a timestamp list for storing each time stamp
+        self._timestamp = []  # create a timestamp list for storing each time stamp
 
         self.keyboard = Controller()
 
+        self.ego_vehicles_id = []
+        self.other_actors_id = []
+        self._ego_vehicles_parameters = []
+        self._other_vehicles_parameters = []
+
+        self.file = open("data_" + ".csv", "a+", newline="")
+        self.writer = csv.writer(self.file, delimiter=',')
         world.on_tick(self._tick_scenario)
 
     def load_scenario(self, scenario):
@@ -146,6 +153,11 @@ class ScenarioManager(object):
         self.scenario_tree = self.scenario.scenario_tree
         self.ego_vehicles = scenario.ego_vehicles
         self.other_actors = scenario.other_actors
+        self.ego_vehicles_id = [ego_vehicle.id for ego_vehicle in self.ego_vehicles]
+        self.other_actors_id = [other_actor.id for other_actor in self.other_actors]
+
+        print("ego vehicles id: {}\n".format(self.ego_vehicles_id))
+        print("other actors id: {}\n".format(self.other_actors_id))
 
         CarlaDataProvider.register_actors(self.ego_vehicles)
         CarlaDataProvider.register_actors(self.other_actors)
@@ -170,8 +182,12 @@ class ScenarioManager(object):
         """
         print("ScenarioManager: Running scenario {}".format(self.scenario_tree.name))
         self.start_system_time = time.time()
-        start_game_time = GameTime.get_time()       # start_game_time = 0.0
+        start_game_time = GameTime.get_time()  # start_game_time = 0.0
         self._running = True
+
+        # create new file
+
+
 
         while self._running:
             time.sleep(0.5)
@@ -201,22 +217,24 @@ class ScenarioManager(object):
         - A thread lock should be used to avoid that the scenario tick is performed
           multiple times in parallel.
         """
+
+
         with self._my_lock:
             if self._running and self._timestamp_last_run < timestamp.elapsed_seconds:
                 self._timestamp_last_run = timestamp.elapsed_seconds
 
                 tick_time = int(time.time() * 1000)  # get every tick seconds with timestamp
-                self._timestamp.append(tick_time)    # store the time stamp in list
+                self._timestamp.append(tick_time)  # store the time stamp in list
 
                 if self._debug_mode:
                     print("\n--------- Tick ---------\n")
 
                 # Update game time and actor information
-                GameTime.on_carla_tick(timestamp)           # GameTime.on_carla_tick(timestamp) = None
+                GameTime.on_carla_tick(timestamp)  # GameTime.on_carla_tick(timestamp) = None
                 CarlaDataProvider.on_carla_tick()
 
                 # Tick scenario
-                self.scenario_tree.tick_once()   # None
+                self.scenario_tree.tick_once()  # None
 
                 if self._debug_mode:
                     print("\n")
@@ -236,7 +254,38 @@ class ScenarioManager(object):
                 if distances[i] < self.shortest_distance:
                     self.shortest_distance = distances[i]
 
-    def stop_scenario(self, epoch=100):
+                for i in range(len(self.ego_vehicles)):
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_transform().rotation.pitch)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_transform().rotation.yaw)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_transform().rotation.roll)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_velocity().x)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_velocity().y)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_velocity().z)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_angular_velocity().x)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_angular_velocity().y)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_angular_velocity().z)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_acceleration().x)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_acceleration().y)
+                    self._ego_vehicles_parameters.append(self.ego_vehicles[i].get_acceleration().z)
+
+                for j in range(len(self.other_actors)):
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_transform().rotation.pitch)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_transform().rotation.yaw)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_transform().rotation.roll)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_velocity().x)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_velocity().y)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_velocity().z)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_angular_velocity().x)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_angular_velocity().y)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_angular_velocity().z)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_acceleration().x)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_acceleration().y)
+                    self._other_vehicles_parameters.append(self.other_actors[i].get_acceleration().z)
+
+                self.writer.writerow([tick_time] + self._ego_vehicles_parameters + self._other_vehicles_parameters)
+
+
+    def stop_scenario(self):
         """
         This function triggers a proper termination of a scenario
         """
@@ -246,13 +295,12 @@ class ScenarioManager(object):
         # notify agent with escape key to close actual window
         self.keyboard.press(Key.esc)
         self.keyboard.release(Key.esc)
-
+        print("ego vehicles position: {}".format(self._ego_vehicles_position))
+        print("ego vehicles velocity: {}".format(self._ego_vehicles_velocity))
         # write recorded data to file and create new recording file every 5 seconds
-        for n in range(int(math.ceil(len(self._timestamp)/epoch))):
-            file = open("data_" + str(self._timestamp[n*epoch]) + ".txt", "a+")
-            for i in range(len(self._timestamp[n*epoch:n*epoch+epoch+1])):
-                file.write(str(self._timestamp[i]) + "\n")
-            file.close()
+        # the frequency of creating a new data file denpends on the epoch parameters
+
+
         CarlaDataProvider.cleanup()
 
     def analyze_scenario(self, stdout, filename, junit):
