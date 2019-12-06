@@ -133,7 +133,8 @@ class World(object):
         self.server_fps = 0
         self.frame = 0
         self.simulation_time = 0
-        self._server_clock = pygame.time.Clock()
+        self._server_clock = None
+
         self._info_text = []
 
         self.init_characters()
@@ -150,10 +151,26 @@ class World(object):
         self = weak_self()
         if not self:
             return
+        if self.hud is not None:
+            self._server_clock.tick()
+            self.server_fps = self._server_clock.get_fps()
+            self.simulation_time = timestamp.elapsed_seconds
+        else:
+            return
 
-        self._server_clock.tick()
-        self.server_fps = self._server_clock.get_fps()
-        self.simulation_time = timestamp.elapsed_seconds
+    def set_hud(self, hud):
+        self.hud = hud
+
+        if self._server_clock is None:
+            self._server_clock = pygame.time.Clock()
+
+        self.camera_manager = CameraManager(self.player, hud)
+        self.camera_manager.set_sensor(0, notify=False)
+
+        self.collision_sensor.set_hud(hud)
+        self.lane_invasion_sensor.set_hud(hud)
+        # self.camera_manager.set_hud(hud)
+
 
     def init_characters(self):
         count_init_cycles = 0
@@ -166,18 +183,20 @@ class World(object):
                     self.player = vehicle
 
             if count_init_cycles > 3:
+                print('exit')
                 sys.exit()
             count_init_cycles += 1
 
         self.vehicle_name = self.player.type_id
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
-        self.camera_manager = CameraManager(self.player, self.hud)
-        self.camera_manager.set_sensor(0, notify=False)
+
         self.controller = None
         self.gnss_sensor = GnssSensor(self.player)
 
     def update_hud_info(self):
+        if self.hud == None:
+            raise Exception('Hud is None, cannot update hud information')
         t = self.player.get_transform()
         v = self.player.get_velocity()
         c = self.player.get_control()
@@ -234,8 +253,8 @@ class World(object):
                     break
                 vehicle_type = get_actor_display_name(vehicle, truncate=22)
                 self._info_text.append('% 4dm %s' % (d, vehicle_type))
-
-        self.hud.add_info(self._info_text)
+        if self.hud is not None:
+            self.hud.add_info(self._info_text)
 
     def restart(self):
         # Keep same camera config if the camera manager exists.
@@ -276,18 +295,20 @@ class World(object):
         self._weather_index %= len(self._weather_presets)
         preset = self._weather_presets[self._weather_index]
         #hud
-        self.hud.notification('Weather: %s' % preset[1])
+        if self.hud is not None:
+            self.hud.notification('Weather: %s' % preset[1])
         self.player.get_world().set_weather(preset[0])
 
     def tick(self):
         if len(self.world.get_actors().filter(self.vehicle_name)) < 1:
             print("Scenario ended -- Terminating")
             return False
-        self.update_hud_info()
+        if self.hud is not None:
+            self.update_hud_info()
         return True
 
     def render(self, display):
-        if self.render_display:
+        if self.hud is not None:
             self.camera_manager.render(display)
             #hud
             self.hud.render(display)
@@ -609,6 +630,9 @@ class CollisionSensor(object):
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: CollisionSensor._on_collision(weak_self, event))
 
+    def set_hud(self, hud):
+        self.hud = hud
+
     def get_collision_history(self):
         history = collections.defaultdict(int)
         for frame, intensity in self.history:
@@ -622,7 +646,8 @@ class CollisionSensor(object):
             return
         actor_type = get_actor_display_name(event.other_actor)
         #hud
-        self.hud.notification('Collision with %r' % actor_type)
+        if self.hud is not None:
+            self.hud.notification('Collision with %r' % actor_type)
         impulse = event.normal_impulse
         intensity = math.sqrt(impulse.x ** 2 + impulse.y ** 2 + impulse.z ** 2)
         self.history.append((event.frame, intensity))
@@ -648,6 +673,9 @@ class LaneInvasionSensor(object):
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: LaneInvasionSensor._on_invasion(weak_self, event))
 
+    def set_hud(self, hud):
+        self.hud = hud
+
     @staticmethod
     def _on_invasion(weak_self, event):
         self = weak_self()
@@ -656,7 +684,8 @@ class LaneInvasionSensor(object):
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
         #hud
-        self.hud.notification('Crossed line %s' % ' and '.join(text))
+        if self.hud is not None:
+            self.hud.notification('Crossed line %s' % ' and '.join(text))
 
 # ==============================================================================
 # -- GnssSensor --------------------------------------------------------
@@ -796,22 +825,36 @@ class CameraManager(object):
 # -- game_loop() ---------------------------------------------------------
 # ==============================================================================
 
-def game_loop(args):
+def initiate_display(args, display, hud, world, clock):
     pygame.init()
     pygame.font.init()
-    world = None
+    if display == None:
+        display = pygame.display.set_mode(
+            (args.width, args.height),
+            pygame.HWSURFACE | pygame.DOUBLEBUF)
+    if hud == None:
+        hud = HUD(args.width, args.height)
+        world.set_hud(hud)
+    if clock == None:
+        clock = pygame.time.Clock()
+    return display, hud, clock
 
+
+def game_loop(args):
+    # pygame.init()
+    # pygame.font.init()
+    world = None
+    useDisplay = False
+    enableDisplay = False
     try:
         client = carla.Client(args.host, args.port)
         client.set_timeout(4.0)
 
-        display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+        display = None
         #hud
-        hud = HUD(args.width, args.height)
+        hud = None
         world = World(client.get_world(), hud, args.filter)
-        controller = KeyboardControl(world, False)
+        #controller = KeyboardControl(world, False)
 
         if args.agent == "Roaming":
             agent = RoamingAgent(world.player)
@@ -829,22 +872,32 @@ def game_loop(args):
             agent.set_destination((258.26, -286.1, 0.0))
 
 
-        clock = pygame.time.Clock()
+        clock = None
+        i = 0
         while True:
-            if controller.parse_events(client, world, clock):
-                return
+            # if controller.parse_events(client, world, clock):
+            #     return
             #tick
             # as soon as the server is ready continue!
             world.world.wait_for_tick(10.0)
 
             #tick
             world.tick()
+            print(i)
+            if i == 50:
+                enableDisplay = True
+                useDisplay = True
+            if enableDisplay:
+                display, hud, clock = initiate_display(args, display, hud, world, clock)
+                enableDisplay = False
 
-            world.render(display)
+            if useDisplay:
+                print(display)
+                world.render(display)
             # control = agent.run_step()  # after world.restart agent is destroyed and should be recreated
             # control.manual_gear_shift = False
             # world.player.apply_control(control)
-
+            i += 1
     finally:
         if world is not None:
             world.destroy()
