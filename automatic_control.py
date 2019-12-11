@@ -775,7 +775,7 @@ def game_loop(args):
             #agent.set_destination((spawn_point.location.x,
             #                       spawn_point.location.y,
             #                       spawn_point.location.z))
-            agent.set_destination((258.26, -286.1, 0.0))
+            agent.set_destination((-35.9, 136.3, 0.0))
 
         clock = pygame.time.Clock()
         while True:
@@ -815,7 +815,7 @@ def main():
     argparser.add_argument(
         '--host',
         metavar='H',
-        default='10.5.2.34', # '127.0.0.1',
+        default='127.0.0.1',
         help='IP of the host server (default: 127.0.0.1)')
     argparser.add_argument(
         '-p', '--port',
