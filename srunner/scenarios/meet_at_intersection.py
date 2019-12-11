@@ -126,12 +126,11 @@ class MeetAtIntersectionTrial(BasicScenario):
         # next drive behaviour
         next_drive_behaviour = py_trees.composites.Parallel('next_drive_behaviour',
                                                             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
-        next_drive_behaviour_part1 = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], distance=30,
+        IntriggerCondition4NextDrivingBehaviour= InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], distance=35,
                                                                 name="InTriggerDistanceToVehicle")
-        next_drive_behaviour_part2 = BasicAgentBehavior(self.other_actors[0], target_location=target_location_1)
+        next_drive_behaviour = BasicAgentBehavior(self.other_actors[0], target_location=target_location_1)
 
-        next_drive_behaviour.add_child(next_drive_behaviour_part1)
-        # next_drive_behaviour.add_child(next_drive_behaviour_part2)
+        #next_drive_behaviour.add_child(next_drive_behaviour_part2)
 
         # end condition
 
@@ -152,8 +151,8 @@ class MeetAtIntersectionTrial(BasicScenario):
         sequence.add_child(start_transform)
         sequence.add_child(drive_behaviour_to_next_intersection)
         sequence.add_child(stop)
+        #sequence.add_child(IntriggerCondition4NextDrivingBehaviour)
         #sequence.add_child(next_drive_behaviour)
-        #sequence.add_child(move_actor)
         sequence.add_child(end_condition)
         #sequence.add_child(ActorDestroy(self.other_actors[0]))
         return sequence

@@ -45,6 +45,7 @@ from srunner.scenarios.other_leading_vehicle import *
 from srunner.scenarios.signalized_junction_left_turn import *
 from srunner.scenarios.signalized_junction_right_turn import *
 from srunner.scenarios.basic_scenario import BasicScenario
+from srunner.scenarios.turn_left_vehicle_give_way import *
 from srunner.scenarios.open_scenario import OpenScenario
 from srunner.tools.config_parser import *
 from srunner.tools.openscenario_parser import OpenScenarioConfiguration
@@ -73,6 +74,7 @@ SCENARIOS = {
     "SetLevelIntersection": SETLEVEL_INTERSECTION,
     "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A,
     "MeetAtIntersection": MEET_AT_INTERSECTION_SCENARIOS,
+    "TurnLeftVehicleGiveWay": TURNING_LEFT_SCENARIOS
 }
 
 
@@ -283,8 +285,6 @@ class ScenarioRunner(object):
         if args.openscenario:
             self.run_openscenario(args)
             return
-
-
         # Setup and run the scenarios for repetition times
         #y_values = np.arange(-234.0, -204.0, 1.0)  # 30 repetitions
         #file = open("data.txt", "a+")
@@ -302,12 +302,6 @@ class ScenarioRunner(object):
             #scenario_configurations[0].other_actors[0].transform.location.y = y_values[rep]
             #print("now using y: " + str(scenario_configurations[0].other_actors[0].transform.location.y))
             # todo: write to file: (x and) y position of other actor 0
-
-
-
-
-
-
             # Execute each configuration
             config_counter = 0
             print("scenarion configurations : {}\n".format(scenario_configurations))
@@ -344,8 +338,6 @@ class ScenarioRunner(object):
                 self.load_and_run_scenario(args, config, scenario)
 
                 config_counter += 1
-
-
 
             self.cleanup(ego=(not args.waitForEgo))
 
