@@ -22,8 +22,8 @@ import csv
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime, TimeOut
-
 from pynput.keyboard import Key, Controller
+from srunner.scenariomanager.add_contents_to_csv import *
 
 
 class Scenario(object):
@@ -138,7 +138,7 @@ class ScenarioManager(object):
         self.other_actors_id = []
         self._ego_vehicles_parameters = []
         self._other_vehicles_parameters = []
-
+        #self._temp = []  # initialise a temperary variable
 
         world.on_tick(self._tick_scenario)
 
@@ -185,9 +185,10 @@ class ScenarioManager(object):
         self._running = True
 
         # create new file
-        self.file = open("data_" + str(int(self.start_system_time *1000))+".csv", "a", newline="")
-        self.writer = csv.writer(self.file, delimiter=',')
-        self.writer.writerow(["Timestamp", "id_ego_vehicles", "id_other_actors"])
+        file = open("data_" + str(int(self.start_system_time * 1000)) + ".csv", "a", newline="")
+        self.writer = csv.writer(file, delimiter=',')
+        first_row = add_title_to_csv(self.ego_vehicles_id, self.other_actors_id)
+        self.writer.writerow(first_row)
 
 
         while self._running:
@@ -218,12 +219,9 @@ class ScenarioManager(object):
         - A thread lock should be used to avoid that the scenario tick is performed
           multiple times in parallel.
         """
-
-
         with self._my_lock:
             if self._running and self._timestamp_last_run < timestamp.elapsed_seconds:
                 self._timestamp_last_run = timestamp.elapsed_seconds
-
                 tick_time = int(time.time() * 1000)  # get every tick seconds with timestamp
                 self._timestamp.append(tick_time)  # store the time stamp in list
 
@@ -254,18 +252,9 @@ class ScenarioManager(object):
                     # print('actor ' + str(i) + ': ' + str(distance))
                 if distances[i] < self.shortest_distance:
                     self.shortest_distance = distances[i]
-                self.writer.writerow([tick_time, self.ego_vehicles[0].get_transform().pitch,
-                                     self.ego_vehicles[0].get_transform().yaw,
-                                      self.ego_vehicles[0].get_transform().roll,
-                                      self.ego_vehicles[0].get_velocity().x,
-                                      self.ego_vehicles[0].get_velocity().y,
-                                      self.ego_vehicles[0].get_velocity().z,
-                                      self.ego_vehicles[0].get_angular_velocity().x,
-                                      self.ego_vehicles[0].get_angular_velocity().y,
-                                      self.ego_vehicles[0].get_angular_velocity().z,
-                                      self.ego_vehicles[0].get_acceleration().x,
-                                      self.ego_vehicles[0].get_acceleration().y,
-                                      self.ego_vehicles[0].get_acceleration().z])
+
+                self._temp = add_contents_to_csv(tick_time, self.ego_vehicles, self.other_actors)
+                self.writer.writerow(self._temp)
 
     def stop_scenario(self):
         """
@@ -277,11 +266,8 @@ class ScenarioManager(object):
         # notify agent with escape key to close actual window
         self.keyboard.press(Key.esc)
         self.keyboard.release(Key.esc)
-        print("ego vehicles position: {}".format(self._ego_vehicles_position))
-        print("ego vehicles velocity: {}".format(self._ego_vehicles_velocity))
         # write recorded data to file and create new recording file every 5 seconds
         # the frequency of creating a new data file denpends on the epoch parameters
-
 
         CarlaDataProvider.cleanup()
 

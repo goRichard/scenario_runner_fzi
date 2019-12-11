@@ -131,7 +131,7 @@ class MeetAtIntersectionTrial(BasicScenario):
         next_drive_behaviour_part2 = BasicAgentBehavior(self.other_actors[0], target_location=target_location_1)
 
         next_drive_behaviour.add_child(next_drive_behaviour_part1)
-        #next_drive_behaviour.add_child(next_drive_behaviour_part2)
+        # next_drive_behaviour.add_child(next_drive_behaviour_part2)
 
         # end condition
 
@@ -141,18 +141,21 @@ class MeetAtIntersectionTrial(BasicScenario):
         end_condition_part1 = StandStill(self.other_actors[0],
                                          name="StandStill_other")  # standstill for other_vehicle
         end_condition_part2 = StandStill(self.ego_vehicles[0], name="StandStill_ego")
+        end_condition_part3 = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], distance=1,
+                                                         name="InTriggerDistanceToVehicle")
         end_condition.add_child(end_condition_part1)
         end_condition.add_child(end_condition_part2)
+        end_condition.add_child(end_condition_part3)
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
         sequence.add_child(start_transform)
         sequence.add_child(drive_behaviour_to_next_intersection)
         sequence.add_child(stop)
-        sequence.add_child(next_drive_behaviour)
-        sequence.add_child(move_actor)
+        #sequence.add_child(next_drive_behaviour)
+        #sequence.add_child(move_actor)
         sequence.add_child(end_condition)
-        # sequence.add_child(ActorDestroy(self.other_actors[0]))
+        #sequence.add_child(ActorDestroy(self.other_actors[0]))
         return sequence
 
     def _create_test_criteria(self):
