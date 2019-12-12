@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <scenarios>
     <scenario name="ConfrontationCross_1" type="ConfrontationCross" town="Town03">
-        <ego_vehicle x="-131.6" y="138.0" z="0.2" yaw="0" model="vehicle.lincoln.mkz2017" />
+        <ego_vehicle x="-131.6" y="138.0" z="0.2" yaw="0" model="vehicle.lincoln.mkz2017" rolename="hero"/>
         <other_actor x="-44.2" y="129.5" z="0.0" yaw="-180" model="vehicle.tesla.model3" />
         <weather cloudyness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth="0" sun_altitude="75" />
     </scenario>
