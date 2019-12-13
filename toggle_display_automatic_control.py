@@ -23,6 +23,11 @@ import random
 import re
 import sys
 import weakref
+import threading
+
+# xmlrpc
+from xmlrpc.server import SimpleXMLRPCServer
+
 
 try:
     import pygame
@@ -104,6 +109,18 @@ def find_weather_presets():
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
+
+
+class XmlRpcNode(object):
+
+    def __init__(self):
+
+        self.server = SimpleXMLRPCServer(('localhost', 8000), allow_none=True)
+        self.usedisplay = False
+        self.server.register_function(self.toggle_display, "toggle_display")
+
+    def toggle_display(self):
+        self.usedisplay = not self.usedisplay
 
 
 # ==============================================================================
@@ -855,20 +872,22 @@ def open_display(args, display, hud, world, clock):
         world.enable_display(hud)
     if clock == None:
         clock = pygame.time.Clock()
+    print('open display')
     return display, hud, clock
 
 
 def close_display(world):
     pygame.quit()
     world.disable_display()
+    print('close display')
 
 
 def game_loop(args):
-    # pygame.init()
-    # pygame.font.init()
+    # Create an XmlRpcNode object and initiate
+    xmlRpcNode = XmlRpcNode()
+    threading.Thread(target=xmlRpcNode.server.serve_forever).start()
+
     world = None
-    useDisplay = False
-    enableDisplay = False
     autopilot_enabled = True
     try:
         client = carla.Client(args.host, args.port)
@@ -904,23 +923,23 @@ def game_loop(args):
 
             #tick
             world.tick()
-            print(i)
-            if i == 50:
-                useDisplay = True
+            print(i, xmlRpcNode.usedisplay)
+            # if i == 50:
+            #     useDisplay = True
+            #
+            # if i == 150:
+            #     useDisplay = False
+            # if i == 200:
+            #     useDisplay = True
 
-            if i == 150:
-                useDisplay = False
-            if i == 200:
-                useDisplay = True
-
-            if useDisplay and display is None:
+            if xmlRpcNode.usedisplay and display is None:
                 display, hud, clock = open_display(args, display, hud, world, clock)
 
-            if not useDisplay and display is not None:
+            if not xmlRpcNode.usedisplay and display is not None:
                 close_display(world)
-                display, hud, clock =  None, None, None
+                display, hud, clock = None, None, None
 
-            if useDisplay:
+            if xmlRpcNode.usedisplay:
                 print(display)
                 world.render(display)
             # control = agent.run_step()  # after world.restart agent is destroyed and should be recreated
@@ -930,7 +949,7 @@ def game_loop(args):
     finally:
         if world is not None:
             world.destroy()
-
+        xmlRpcNode.server.shutdown()
         pygame.quit()
 
 

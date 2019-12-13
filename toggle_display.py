@@ -1,0 +1,4 @@
+import xmlrpc.client
+
+client = xmlrpc.client.ServerProxy('http://localhost:8000')
+client.toggle_display()
