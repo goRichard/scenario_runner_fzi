@@ -8,15 +8,15 @@ def add_title_to_csv(*actor_id_lists):
                 id_number + "_transform_pitch",
                 id_number + "_transform_yaw",
                 id_number + "_transform_roll",
-                id_number + "_vel_x",
-                id_number + "_vel_y",
-                id_number + "_vel_z",
-                id_number + "_angular_vel_x",
-                id_number + "_angular_vel_y",
-                id_number + "_angular_vel_z",
-                id_number + "_acc_x",
-                id_number + "_acc_y",
-                id_number + "_acc_z"]
+                id_number + "_vel_x (m/s)",
+                id_number + "_vel_y (m/s)",
+                id_number + "_vel_z (m/s)",
+                id_number + "_angular_vel_x (rad/s)",
+                id_number + "_angular_vel_y (rad/s)",
+                id_number + "_angular_vel_z (rad/s)",
+                id_number + "_acc_x (m/s\u00b2)",
+                id_number + "_acc_y (m/s\u00b2)",
+                id_number + "_acc_z (m/s\u00b2) gravity"]
             title_list.extend(new_actor_id_list)
 
     return title_list
@@ -46,7 +46,7 @@ def add_contents_to_csv(tick_time, *actors_lists):
                 actor.get_acceleration().y,
                 actor.get_acceleration().z
             ]
-            content_list.extend(temp_list)
+            content_list.extend([round(temp, 2) for temp in temp_list])
 
     return content_list
 

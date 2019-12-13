@@ -765,7 +765,8 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args.filter)
-        controller = KeyboardControl(world, False)
+        # Change here to set the ego vehicle to be automatic
+        controller = KeyboardControl(world, True)
 
         if args.agent == "Roaming":
             agent = RoamingAgent(world.vehicle)

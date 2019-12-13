@@ -130,15 +130,12 @@ class ScenarioManager(object):
         self.end_system_time = None
         self.shortest_distance = 1000.0
         self._relative_velocity = []
+
         self._timestamp = []  # create a timestamp list for storing each time stamp
-
-        self.keyboard = Controller()
-
         self.ego_vehicles_id = []
         self.other_actors_id = []
-        self._ego_vehicles_parameters = []
-        self._other_vehicles_parameters = []
-        #self._temp = []  # initialise a temperary variable
+
+        self.keyboard = Controller()
 
         world.on_tick(self._tick_scenario)
 
@@ -152,6 +149,7 @@ class ScenarioManager(object):
         self.scenario_tree = self.scenario.scenario_tree
         self.ego_vehicles = scenario.ego_vehicles
         self.other_actors = scenario.other_actors
+        # store the id_number value in two lists
         self.ego_vehicles_id = [ego_vehicle.id for ego_vehicle in self.ego_vehicles]
         self.other_actors_id = [other_actor.id for other_actor in self.other_actors]
 
@@ -187,9 +185,9 @@ class ScenarioManager(object):
         # create new file
         file = open("data_" + str(int(self.start_system_time * 1000)) + ".csv", "a", newline="")
         self.writer = csv.writer(file, delimiter=',')
+        # write the first row, the title of csv file, write ego_vehicle first
         first_row = add_title_to_csv(self.ego_vehicles_id, self.other_actors_id)
         self.writer.writerow(first_row)
-
 
         while self._running:
             time.sleep(0.5)
@@ -200,10 +198,9 @@ class ScenarioManager(object):
                                         self.start_system_time
         self.scenario_duration_game = end_game_time - start_game_time
 
-        print("scenarion duraiton system: {}".format(self.scenario_duration_system))
-        print("scenarion duraiton game: {}".format(self.scenario_duration_game))
-        print("time stamp list: {}".format(self._timestamp))
-        print("time stamp list length {}".format(len(self._timestamp)))
+        print("scenario duraiton system: {} \n".format(self.scenario_duration_system))
+        print("scenario duraiton game: {} \n".format(self.scenario_duration_game))
+        print("time stamp list length {} \n".format(len(self._timestamp)))
 
         if self.scenario_tree.status == py_trees.common.Status.FAILURE:
             print("ScenarioManager: Terminated due to failure")
@@ -222,8 +219,10 @@ class ScenarioManager(object):
         with self._my_lock:
             if self._running and self._timestamp_last_run < timestamp.elapsed_seconds:
                 self._timestamp_last_run = timestamp.elapsed_seconds
-                tick_time = int(time.time() * 1000)  # get every tick seconds with timestamp
-                self._timestamp.append(tick_time)  # store the time stamp in list
+                # get every tick seconds with timestamp
+                tick_time = int(time.time() * 1000)
+                # store the time stamp in list
+                self._timestamp.append(tick_time)
 
                 if self._debug_mode:
                     print("\n--------- Tick ---------\n")
@@ -243,17 +242,10 @@ class ScenarioManager(object):
 
                 if self.scenario_tree.status != py_trees.common.Status.RUNNING:
                     self._running = False
-                distances = []
-                for i in range(len(self.other_actors)):
-                    distance = np.sqrt(
-                        (self.other_actors[i].get_location().x - self.ego_vehicles[0].get_location().x) ** 2 + (
-                                self.other_actors[i].get_location().y - self.ego_vehicles[0].get_location().y) ** 2)
-                    distances.append(distance)
-                    # print('actor ' + str(i) + ': ' + str(distance))
-                if distances[i] < self.shortest_distance:
-                    self.shortest_distance = distances[i]
 
+                # get the information and form it in a list
                 self._temp = add_contents_to_csv(tick_time, self.ego_vehicles, self.other_actors)
+                # write all the information w.r.t. current timestamp
                 self.writer.writerow(self._temp)
 
     def stop_scenario(self):

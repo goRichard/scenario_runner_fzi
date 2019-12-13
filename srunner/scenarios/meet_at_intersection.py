@@ -102,7 +102,8 @@ class MeetAtIntersectionTrial(BasicScenario):
                                            0.0)  # the target location of other vehicle
 
         # drive_behaviour
-        move_actor = BasicAgentBehavior(self.other_actors[0], target_location=target_location_1)
+        move_actor_1 = BasicAgentBehavior(self.other_actors[0], target_location=target_location_1)
+        move_actor_2 = RoamingAgentBehavior(self.other_actors[0])
 
         # end condition
 
@@ -118,7 +119,7 @@ class MeetAtIntersectionTrial(BasicScenario):
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
         sequence.add_child(start_transform)
-        sequence.add_child(move_actor)
+        sequence.add_child(move_actor_1)
         #sequence.add_child(end_condition)
         return sequence
 
