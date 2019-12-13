@@ -171,7 +171,7 @@ class World(object):
         else:
             return
 
-    def set_hud(self, hud):
+    def enable_display(self, hud):
         self.hud = hud
 
         if self._server_clock is None:
@@ -182,8 +182,13 @@ class World(object):
 
         self.collision_sensor.set_hud(hud)
         self.lane_invasion_sensor.set_hud(hud)
-        # self.camera_manager.set_hud(hud)
 
+    def disable_display(self):
+        self.hud = None
+        self._server_clock = None
+        self.camera_manager = None
+        self.collision_sensor.set_hud(None)
+        self.lane_invasion_sensor.set_hud(None)
 
     def init_characters(self):
         count_init_cycles = 0
@@ -838,7 +843,7 @@ class CameraManager(object):
 # -- game_loop() ---------------------------------------------------------
 # ==============================================================================
 
-def initiate_display(args, display, hud, world, clock):
+def open_display(args, display, hud, world, clock):
     pygame.init()
     pygame.font.init()
     if display == None:
@@ -847,10 +852,15 @@ def initiate_display(args, display, hud, world, clock):
             pygame.HWSURFACE | pygame.DOUBLEBUF)
     if hud == None:
         hud = HUD(args.width, args.height)
-        world.set_hud(hud)
+        world.enable_display(hud)
     if clock == None:
         clock = pygame.time.Clock()
     return display, hud, clock
+
+
+def close_display(world):
+    pygame.quit()
+    world.disable_display()
 
 
 def game_loop(args):
@@ -896,11 +906,19 @@ def game_loop(args):
             world.tick()
             print(i)
             if i == 50:
-                enableDisplay = True
                 useDisplay = True
-            if enableDisplay:
-                display, hud, clock = initiate_display(args, display, hud, world, clock)
-                enableDisplay = False
+
+            if i == 150:
+                useDisplay = False
+            if i == 200:
+                useDisplay = True
+
+            if useDisplay and display is None:
+                display, hud, clock = open_display(args, display, hud, world, clock)
+
+            if not useDisplay and display is not None:
+                close_display(world)
+                display, hud, clock =  None, None, None
 
             if useDisplay:
                 print(display)
