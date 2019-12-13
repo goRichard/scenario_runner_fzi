@@ -95,6 +95,7 @@ from agents.navigation.basic_agent import BasicAgent
 
 import time
 
+
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
@@ -109,6 +110,11 @@ def find_weather_presets():
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
+
+
+# ==============================================================================
+# -- XMLRPC Server ----------------------------------------------------------
+# ==============================================================================
 
 
 class XmlRpcNode(object):
@@ -131,7 +137,6 @@ class World(object):
     def __init__(self, carla_world, hud, actor_filter):
         self.world = carla_world
         self.map = self.world.get_map()
-        #hud
         self.render_display = False
         self.hud = hud
         self.player = None
@@ -140,13 +145,11 @@ class World(object):
         self.lane_invasion_sensor = None
         self.gnss_sensor = None
         self.camera_manager = None
+        self.controller = None
+        self.vehicle_name = None
         self._weather_presets = find_weather_presets()
         self._weather_index = 0
         self._actor_filter = actor_filter
-        #self.restart()
-
-        # tick
-        #self.world.on_tick(hud.on_world_tick)
         self.server_fps = 0
         self.frame = 0
         self.simulation_time = 0
@@ -161,21 +164,7 @@ class World(object):
 
         self.recording_enabled = False
         self.recording_start = 0
-        self.init_cam()
 
-    def init_cam(self):
-        camera_bp = self.world.get_blueprint_library().find('sensor.camera.depth')
-        camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
-        self.camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.player)
-        print('created %s' % self.camera.type_id)
-
-        # Now we register the function that will be called each time the sensor
-        # receives an image. In this example we are saving the image to disk
-        # converting the pixels to gray-scale.
-        cc = carla.ColorConverter.LogarithmicDepth
-        self.camera.listen(lambda image: image.save_to_disk('_out/%06d.png' % image.frame, cc))
-
-    ########
     @staticmethod
     def on_world_tick(weak_self, timestamp):
         self = weak_self()
@@ -226,11 +215,10 @@ class World(object):
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
 
-        self.controller = None
         self.gnss_sensor = GnssSensor(self.player)
 
     def update_hud_info(self):
-        if self.hud == None:
+        if self.hud is None:
             raise Exception('Hud is None, cannot update hud information')
         t = self.player.get_transform()
         v = self.player.get_velocity()
@@ -291,45 +279,10 @@ class World(object):
         if self.hud is not None:
             self.hud.add_info(self._info_text)
 
-    def restart(self):
-        # Keep same camera config if the camera manager exists.
-        cam_index = self.camera_manager.index if self.camera_manager is not None else 0
-        cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
-        # Get a random blueprint.
-        blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
-        blueprint.set_attribute('role_name', 'hero')
-        if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
-            blueprint.set_attribute('color', color)
-        # Spawn the player.
-        if self.player is not None:
-            spawn_point = self.player.get_transform()
-            spawn_point.location.z += 2.0
-            spawn_point.rotation.roll = 0.0
-            spawn_point.rotation.pitch = 0.0
-            self.destroy()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-        while self.player is None:
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-        # Set up the sensors.
-        #hud
-        self.collision_sensor = CollisionSensor(self.player, self.hud)
-        self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
-        self.gnss_sensor = GnssSensor(self.player)
-        self.camera_manager = CameraManager(self.player, self.hud)
-        self.camera_manager.transform_index = cam_pos_index
-        self.camera_manager.set_sensor(cam_index, notify=False)
-        actor_type = get_actor_display_name(self.player)
-        #hud
-        self.hud.notification(actor_type)
-
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
         self._weather_index %= len(self._weather_presets)
         preset = self._weather_presets[self._weather_index]
-        #hud
         if self.hud is not None:
             self.hud.notification('Weather: %s' % preset[1])
         self.player.get_world().set_weather(preset[0])
@@ -345,7 +298,6 @@ class World(object):
     def render(self, display):
         if self.hud is not None:
             self.camera_manager.render(display)
-            #hud
             self.hud.render(display)
             pygame.display.flip()
         else:
@@ -535,7 +487,6 @@ class HUD(object):
             pygame.font.Font(pygame.font.get_default_font(), 20),
             (self.dim[0], 40), (0, self.dim[1] - 40))
 
-    #tick
     def tick(self, world, clock):
         self._notifications.tick(world, clock)
 
@@ -609,7 +560,6 @@ class FadingText(object):
         self.surface.fill((0, 0, 0, 0))
         self.surface.blit(text_texture, (10, 11))
 
-    #tick
     def tick(self, _, clock):
         delta_seconds = 1e-3 * clock.get_time()
         self.seconds_left = max(0.0, self.seconds_left - delta_seconds)
@@ -655,7 +605,6 @@ class CollisionSensor(object):
         self.sensor = None
         self.history = []
         self._parent = parent_actor
-        #hud
         self.hud = hud
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.other.collision')
@@ -680,7 +629,6 @@ class CollisionSensor(object):
         if not self:
             return
         actor_type = get_actor_display_name(event.other_actor)
-        #hud
         if self.hud is not None:
             self.hud.notification('Collision with %r' % actor_type)
         impulse = event.normal_impulse
@@ -698,7 +646,6 @@ class LaneInvasionSensor(object):
     def __init__(self, parent_actor, hud):
         self.sensor = None
         self._parent = parent_actor
-        #hud
         self.hud = hud
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.other.lane_invasion')
@@ -718,7 +665,6 @@ class LaneInvasionSensor(object):
             return
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
-        #hud
         if self.hud is not None:
             self.hud.notification('Crossed line %s' % ' and '.join(text))
 
@@ -760,7 +706,6 @@ class CameraManager(object):
         self.sensor = None
         self.surface = None
         self._parent = parent_actor
-        #hud
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
@@ -809,7 +754,6 @@ class CameraManager(object):
             weak_self = weakref.ref(self)
             self.sensor.listen(lambda image: CameraManager._parse_image(weak_self, image))
         if notify:
-            #hud
             self.hud.notification(self.sensors[index][2])
         self.index = index
 
@@ -818,7 +762,6 @@ class CameraManager(object):
 
     def toggle_recording(self):
         self.recording = not self.recording
-        #hud
         self.hud.notification('Recording %s' % ('On' if self.recording else 'Off'))
 
     def render(self, display):
@@ -834,13 +777,11 @@ class CameraManager(object):
             points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'))
             points = np.reshape(points, (int(points.shape[0] / 3), 3))
             lidar_data = np.array(points[:, :2])
-            #hud
             lidar_data *= min(self.hud.dim) / 100.0
             lidar_data += (0.5 * self.hud.dim[0], 0.5 * self.hud.dim[1])
             lidar_data = np.fabs(lidar_data)  # pylint: disable=E1111
             lidar_data = lidar_data.astype(np.int32)
             lidar_data = np.reshape(lidar_data, (-1, 2))
-            #hud
             lidar_img_size = (self.hud.dim[0], self.hud.dim[1], 3)
             lidar_img = np.zeros(lidar_img_size)
             lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
@@ -863,14 +804,14 @@ class CameraManager(object):
 def open_display(args, display, hud, world, clock):
     pygame.init()
     pygame.font.init()
-    if display == None:
+    if display is None:
         display = pygame.display.set_mode(
             (args.width, args.height),
             pygame.HWSURFACE | pygame.DOUBLEBUF)
-    if hud == None:
+    if hud is None:
         hud = HUD(args.width, args.height)
         world.enable_display(hud)
-    if clock == None:
+    if clock is None:
         clock = pygame.time.Clock()
     print('open display')
     return display, hud, clock
@@ -884,8 +825,8 @@ def close_display(world):
 
 def game_loop(args):
     # Create an XmlRpcNode object and initiate
-    xmlRpcNode = XmlRpcNode()
-    threading.Thread(target=xmlRpcNode.server.serve_forever).start()
+    xml_rpc_node = XmlRpcNode()
+    threading.Thread(target=xml_rpc_node.server.serve_forever).start()
 
     world = None
     autopilot_enabled = True
@@ -894,10 +835,8 @@ def game_loop(args):
         client.set_timeout(4.0)
         print(client.get_client_version())
         display = None
-        #hud
         hud = None
         world = World(client.get_world(), hud, args.filter)
-        #controller = KeyboardControl(world, False)
 
         if args.agent == "Roaming":
             agent = RoamingAgent(world.player)
@@ -913,43 +852,24 @@ def game_loop(args):
         world.player.set_autopilot(autopilot_enabled)
 
         clock = None
-        i = 0
         while True:
-            # if controller.parse_events(client, world, clock):
-            #     return
-            #tick
-            # as soon as the server is ready continue!
             world.world.wait_for_tick(10.0)
-
-            #tick
             world.tick()
-            print(i, xmlRpcNode.usedisplay)
-            # if i == 50:
-            #     useDisplay = True
-            #
-            # if i == 150:
-            #     useDisplay = False
-            # if i == 200:
-            #     useDisplay = True
 
-            if xmlRpcNode.usedisplay and display is None:
+            if xml_rpc_node.usedisplay and display is None:
                 display, hud, clock = open_display(args, display, hud, world, clock)
 
-            if not xmlRpcNode.usedisplay and display is not None:
+            if not xml_rpc_node.usedisplay and display is not None:
                 close_display(world)
                 display, hud, clock = None, None, None
 
-            if xmlRpcNode.usedisplay:
-                print(display)
+            if xml_rpc_node.usedisplay:
                 world.render(display)
-            # control = agent.run_step()  # after world.restart agent is destroyed and should be recreated
-            # control.manual_gear_shift = False
-            # world.player.apply_control(control)
-            i += 1
+
     finally:
         if world is not None:
             world.destroy()
-        xmlRpcNode.server.shutdown()
+        xml_rpc_node.server.shutdown()
         pygame.quit()
 
 
@@ -1003,7 +923,7 @@ def main():
     print(__doc__)
 
     try:
-        while(True):
+        while True:
             game_loop(args)
 
     except KeyboardInterrupt:
