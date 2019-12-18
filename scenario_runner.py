@@ -21,22 +21,16 @@ from argparse import RawTextHelpFormatter
 from datetime import datetime
 import importlib
 import inspect
-import numpy as np
-import time
-
-import carla
 
 from srunner.custom_scenarios.test_scenario import *
 from srunner.custom_scenarios.setlevel_intersection import *
 from srunner.custom_scenarios.setlevel_intersection_3cars import *
-from srunner.scenariomanager.carla_data_provider import *
-from srunner.scenariomanager.scenario_manager import ScenarioManager
 from srunner.scenarios.background_activity import *
 from srunner.scenarios.control_loss import *
 from srunner.scenarios.follow_leading_vehicle import *
 from srunner.scenarios.maneuver_opposite_direction import *
 from srunner.scenarios.master_scenario import *
-from srunner.scenarios.meet_at_intersection import *
+from srunner.custom_scenarios.meet_at_intersection import *
 from srunner.scenarios.no_signal_junction_crossing import *
 from srunner.scenarios.object_crash_intersection import *
 from srunner.scenarios.object_crash_vehicle import *
@@ -44,7 +38,6 @@ from srunner.scenarios.opposite_vehicle_taking_priority import *
 from srunner.scenarios.other_leading_vehicle import *
 from srunner.scenarios.signalized_junction_left_turn import *
 from srunner.scenarios.signalized_junction_right_turn import *
-from srunner.scenarios.basic_scenario import BasicScenario
 from srunner.scenarios.turn_left_vehicle_give_way import *
 from srunner.scenarios.open_scenario import OpenScenario
 from srunner.tools.config_parser import *

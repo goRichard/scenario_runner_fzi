@@ -23,7 +23,7 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime, TimeOut
 from pynput.keyboard import Key, Controller
-from srunner.scenariomanager.add_contents_to_csv import *
+from srunner.scenariomanager.data_recording import *
 
 
 class Scenario(object):
@@ -132,11 +132,15 @@ class ScenarioManager(object):
         self._relative_velocity = []
 
         self._timestamp = []  # create a timestamp list for storing each time stamp
-        self.ego_vehicles_id = []
-        self.other_actors_id = []
+        self.ego_vehicles_blueprints = []
+        self.other_actors_blueprints = []
+        self.ego_vehicles_type = []
+        self.other_actors_type = []
 
         self.keyboard = Controller()
 
+        # get the blueprint_library
+        self.blueprint_library = world.get_blueprint_library()
         world.on_tick(self._tick_scenario)
 
     def load_scenario(self, scenario):
@@ -150,11 +154,17 @@ class ScenarioManager(object):
         self.ego_vehicles = scenario.ego_vehicles
         self.other_actors = scenario.other_actors
         # store the id_number value in two lists
-        self.ego_vehicles_id = [ego_vehicle.id for ego_vehicle in self.ego_vehicles]
-        self.other_actors_id = [other_actor.id for other_actor in self.other_actors]
+        ego_vehicles_type = [ego_vehicle.type_id for ego_vehicle in self.ego_vehicles]
+        other_actors_type = [other_actor.type_id for other_actor in self.other_actors]
 
-        print("ego vehicles id: {}\n".format(self.ego_vehicles_id))
-        print("other actors id: {}\n".format(self.other_actors_id))
+        # get blueprints of the world and for ego and other actors
+        blueprints = [bp for bp in self.blueprint_library.filter("*")]
+        vehicles = self.blueprint_library.filter("vehicle.*")
+        walkers = self.blueprint_library.filter("walker.*")
+
+        # get the blueprints instance of ego and other actors
+        self.ego_vehicles_blueprints = [blueprint for blueprint in blueprints if blueprint.id in ego_vehicles_type]
+        self.other_actors_blueprints = [blueprint for blueprint in blueprints if blueprint.id in other_actors_type]
 
         CarlaDataProvider.register_actors(self.ego_vehicles)
         CarlaDataProvider.register_actors(self.other_actors)
@@ -186,7 +196,7 @@ class ScenarioManager(object):
         file = open("data_" + str(int(self.start_system_time * 1000)) + ".csv", "a", newline="")
         self.writer = csv.writer(file, delimiter=',')
         # write the first row, the title of csv file, write ego_vehicle first
-        first_row = add_title_to_csv(self.ego_vehicles_id, self.other_actors_id)
+        first_row = add_title(self.ego_vehicles_blueprints, self.other_actors_blueprints)
         self.writer.writerow(first_row)
 
         while self._running:
@@ -244,7 +254,7 @@ class ScenarioManager(object):
                     self._running = False
 
                 # get the information and form it in a list
-                self._temp = add_contents_to_csv(tick_time, self.ego_vehicles, self.other_actors)
+                self._temp = add_contents(tick_time, self.ego_vehicles, self.other_actors)
                 # write all the information w.r.t. current timestamp
                 self.writer.writerow(self._temp)
 
