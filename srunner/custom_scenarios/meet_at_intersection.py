@@ -44,10 +44,6 @@ class MeetAtIntersectionTrial(BasicScenario):
                                                       world,
                                                       debug_mode,
                                                       criteria_enable=criteria_enable)
-        self._traffic_light_other = CarlaDataProvider.get_next_traffic_light(self.other_actors[0], False)
-        self._traffic_light_other.set_state(carla.TrafficLightState.Red)
-        self._traffic_light_ego = CarlaDataProvider.get_next_traffic_light(self.ego_vehicles[0], False)
-        self._traffic_light_ego.set_state(carla.TrafficLightState.Red)
 
         if randomize:
             self._ego_other_distance_start = random.randint(4, 8)
@@ -102,25 +98,25 @@ class MeetAtIntersectionTrial(BasicScenario):
                                            0.0)  # the target location of other vehicle
 
         # drive_behaviour
-        move_actor_1 = BasicAgentBehavior(self.other_actors[0], target_location=target_location_1)
-        move_actor_2 = RoamingAgentBehavior(self.other_actors[0])
+        move_actor = BasicAgentBehavior(self.other_actors[0], target_location=target_location_1)
 
         # end condition
 
         end_condition = py_trees.composites.Parallel("Waiting for end position",
-                                                     policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
+                                                     policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL)
 
-        end_condition_part1 = StandStill(self.other_actors[0],
-                                         name="StandStill_other")  # standstill for other_vehicle
-        end_condition_part2 = StandStill(self.ego_vehicles[0], name="StandStill_ego")
+        end_condition_part1 = StandStill(self.other_actors[0], name="StandStill Other actors")
+        end_condition_part2 = StandStill(self.ego_vehicles[0], name="StandStill ego vehicles")
+
         end_condition.add_child(end_condition_part1)
         end_condition.add_child(end_condition_part2)
 
         # Build behavior tree
-        sequence = py_trees.composites.Sequence("Sequence Behavior")
+        sequence = py_trees.composites.Sequence("Sequence Behavior")        
         sequence.add_child(start_transform)
-        sequence.add_child(move_actor_1)
-        #sequence.add_child(end_condition)
+        sequence.add_child(move_actor)
+        sequence.add_child(end_condition)
+        #sequence.add_child(ActorDestroy(self.other_actors[0]))
         return sequence
 
     def _create_test_criteria(self):
