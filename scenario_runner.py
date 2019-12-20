@@ -21,21 +21,17 @@ from argparse import RawTextHelpFormatter
 from datetime import datetime
 import importlib
 import inspect
-import numpy as np
-
-import carla
 
 from srunner.custom_scenarios.test_scenario import *
 from srunner.custom_scenarios.setlevel_intersection import *
 from srunner.custom_scenarios.setlevel_intersection_3cars import *
-from srunner.scenariomanager.carla_data_provider import *
-from srunner.scenariomanager.scenario_manager import ScenarioManager
 from srunner.scenarios.background_activity import *
 from srunner.scenarios.control_loss import *
-from srunner.scenarios.confrontation_cross import *
+from srunner.custom_scenarios.confrontation_cross import *
 from srunner.scenarios.follow_leading_vehicle import *
 from srunner.scenarios.maneuver_opposite_direction import *
 from srunner.scenarios.master_scenario import *
+from srunner.custom_scenarios.meet_at_intersection import *
 from srunner.scenarios.no_signal_junction_crossing import *
 from srunner.scenarios.object_crash_intersection import *
 from srunner.scenarios.object_crash_vehicle import *
@@ -43,7 +39,7 @@ from srunner.scenarios.opposite_vehicle_taking_priority import *
 from srunner.scenarios.other_leading_vehicle import *
 from srunner.scenarios.signalized_junction_left_turn import *
 from srunner.scenarios.signalized_junction_right_turn import *
-from srunner.scenarios.basic_scenario import BasicScenario
+from srunner.scenarios.turn_left_vehicle_give_way import *
 from srunner.scenarios.open_scenario import OpenScenario
 from srunner.tools.config_parser import *
 from srunner.tools.openscenario_parser import OpenScenarioConfiguration
@@ -71,8 +67,10 @@ SCENARIOS = {
     "TestScenario": TEST_SCENARIO,
     "SetLevelIntersection": SETLEVEL_INTERSECTION,
     "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A,
-    "ConfrontationCross": CONFRONTATION_CROSS
+    "ConfrontationCross": CONFRONTATION_CROSS,
 
+    "MeetAtIntersection": MEET_AT_INTERSECTION_SCENARIOS,
+    "TurnLeftVehicleGiveWay": TURNING_LEFT_SCENARIOS
 }
 
 
@@ -94,7 +92,7 @@ class ScenarioRunner(object):
     client_timeout = 30.0  # in seconds
     wait_for_world = 20.0  # in seconds
     frame_rate = 20.0      # in Hz
-
+    single_tick = (1.0/20.0) * 1000 # in milliseconds
     # CARLA world and scenario handlers
     world = None
     manager = None
@@ -115,8 +113,8 @@ class ScenarioRunner(object):
 
         # Once we have a client we can retrieve the world that is currently
         # running.
+        # the sampling frequency
         self.world = self.client.get_world()
-
         settings = self.world.get_settings()
         settings.fixed_delta_seconds = 1.0 / self.frame_rate
         self.world.apply_settings(settings)
@@ -283,10 +281,9 @@ class ScenarioRunner(object):
         if args.openscenario:
             self.run_openscenario(args)
             return
-
         # Setup and run the scenarios for repetition times
-        y_values = np.arange(-234.0, -204.0, 1.0)  # 30 repetitions
-        file = open("data.txt", "a+")
+        #y_values = np.arange(-234.0, -204.0, 1.0)  # 30 repetitions
+        #file = open("data.txt", "a+")
 
         for rep in range(int(args.repetitions)):
 
@@ -301,9 +298,9 @@ class ScenarioRunner(object):
             #scenario_configurations[0].other_actors[0].transform.location.y = y_values[rep]
             #print("now using y: " + str(scenario_configurations[0].other_actors[0].transform.location.y))
             # todo: write to file: (x and) y position of other actor 0
-
             # Execute each configuration
             config_counter = 0
+            print("scenarion configurations : {}\n".format(scenario_configurations))
             for config in scenario_configurations:
                 #file.write(str(config.other_actors[0].transform.location.y) + ',')
                 print(config.town)
@@ -434,7 +431,6 @@ if __name__ == '__main__':
         print("Please specify a scenario using '--scenario SCENARIONAME'\n\n")
         PARSER.print_help(sys.stdout)
         sys.exit(0)
-
     SCENARIORUNNER = None
     try:
         SCENARIORUNNER = ScenarioRunner(ARGUMENTS)

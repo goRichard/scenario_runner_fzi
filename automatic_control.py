@@ -765,7 +765,8 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args.filter)
-        controller = KeyboardControl(world, False)
+        # Change here to set the ego vehicle to be automatic
+        controller = KeyboardControl(world, True)
 
         if args.agent == "Roaming":
             agent = RoamingAgent(world.vehicle)
@@ -775,7 +776,7 @@ def game_loop(args):
             #agent.set_destination((spawn_point.location.x,
             #                       spawn_point.location.y,
             #                       spawn_point.location.z))
-            agent.set_destination((258.26, -286.1, 0.0))
+            agent.set_destination((-35.9, 136.3, 0.0))
 
         clock = pygame.time.Clock()
         while True:

@@ -437,8 +437,7 @@ class InTriggerDistanceToLocationAlongRoute(AtomicBehavior):
 
             actor_distance, _ = get_distance_along_route(self._route, current_location)
 
-            if (self._location_distance < actor_distance + self._distance and
-                actor_distance < self._location_distance) or \
+            if (actor_distance + self._distance > self._location_distance > actor_distance) or \
                     self._location_distance < 1.0:
                 new_status = py_trees.common.Status.SUCCESS
 
@@ -446,6 +445,7 @@ class InTriggerDistanceToLocationAlongRoute(AtomicBehavior):
 
 
 class AccelerateToVelocity(AtomicBehavior):
+
 
     """
     This class contains an atomic acceleration behavior. The controlled
@@ -891,6 +891,33 @@ class ChangeNoiseParameters(AtomicBehavior):
         new_status = py_trees.common.Status.SUCCESS
         self.logger.debug("%s.update()[%s->%s]" % (self.__class__.__name__, self.status, new_status))
         return new_status
+
+
+class RoamingAgentBehavior(AtomicBehavior):
+
+    def __init__(self, actor, name="RoamingAgentBehavior"):
+        """
+        Setup actor and maximum steer value
+        """
+        super(RoamingAgentBehavior, self).__init__(name)
+        self.logger.debug(f"{self.__class__.__name__}.__init__()")
+        self._agent = RoamingAgent(actor)
+        self._control = carla.VehicleControl()
+        self._actor = actor
+
+    def update(self):
+        new_status = py_trees.common.Status.RUNNING
+        self._control = self._agent.run_step()
+        #self.logger.debug("%s.update()[%s->%s]" % (self.__class__.__name__, self.status, new_status))
+        #self._actor.apply_control(self._control)
+
+        return new_status
+
+    def terminate(self, new_status):
+        self._control.throttle = 0.0
+        self._control.brake = 0.0
+        self._actor.apply_control(self._control)
+        super(RoamingAgentBehavior, self).terminate(new_status)
 
 
 class BasicAgentBehavior(AtomicBehavior):

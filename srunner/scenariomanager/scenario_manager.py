@@ -18,16 +18,15 @@ import threading
 import py_trees
 
 import numpy as np
-
+import csv
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime, TimeOut
-
 from pynput.keyboard import Key, Controller
+from srunner.scenariomanager.data_recording import *
 
 
 class Scenario(object):
-
     """
     Basic scenario class. This class holds the behavior_tree describing the
     scenario and the test criteria.
@@ -91,7 +90,6 @@ class Scenario(object):
 
 
 class ScenarioManager(object):
-
     """
     Basic scenario manager class. This class holds all functionality
     required to start, and analyze a scenario.
@@ -112,6 +110,7 @@ class ScenarioManager(object):
         """
         Init requires scenario as input
         """
+        self.start_time = None
         self.scenario = None
         self.scenario_tree = None
         self.scenario_class = None
@@ -130,9 +129,18 @@ class ScenarioManager(object):
         self.start_system_time = None
         self.end_system_time = None
         self.shortest_distance = 1000.0
+        self._relative_velocity = []
+
+        self._timestamp = []  # create a timestamp list for storing each time stamp
+        self.ego_blueprints = [] # initialize the ego blueprints (including vehicles, bike etc.)
+        self.other_actors_blueprints = [] # initialize the other actor blueprints (including vehicles, bike etc.)
+        self.ego_type = [] # type should be look like walker.pedestrian.0001, vehicle.yamaha.yzf etc.
+        self.other_actors_type = [] # same style as ego type
 
         self.keyboard = Controller()
 
+        # get the blueprint_library of the current simulation world
+        self.blueprint_library = world.get_blueprint_library()
         world.on_tick(self._tick_scenario)
 
     def load_scenario(self, scenario):
@@ -145,6 +153,25 @@ class ScenarioManager(object):
         self.scenario_tree = self.scenario.scenario_tree
         self.ego_vehicles = scenario.ego_vehicles
         self.other_actors = scenario.other_actors
+        # store the id_number value in two lists
+        ego_type = [ego_vehicle.type_id for ego_vehicle in self.ego_vehicles]
+        other_actors_type = [other_actor.type_id for other_actor in self.other_actors]
+
+        # get blueprints of the world and for ego and other actors
+        blueprints = [bp for bp in self.blueprint_library.filter("*")]
+        # get vehicle blueprints in this world
+        vehicles = self.blueprint_library.filter("vehicle.*")
+
+        # get the walker blueprints in this walker
+        walkers = self.blueprint_library.filter("walker.*")
+
+        # choose a random walker from the walker
+        random_walker = np.random.choice(walkers)
+
+
+        # get the blueprints instance of ego and other actors
+        self.ego_blueprints = [blueprint for blueprint in blueprints if blueprint.id in ego_type]
+        self.other_actors_blueprints = [blueprint for blueprint in blueprints if blueprint.id in other_actors_type]
 
         CarlaDataProvider.register_actors(self.ego_vehicles)
         CarlaDataProvider.register_actors(self.other_actors)
@@ -169,19 +196,28 @@ class ScenarioManager(object):
         """
         print("ScenarioManager: Running scenario {}".format(self.scenario_tree.name))
         self.start_system_time = time.time()
-        start_game_time = GameTime.get_time()
-
+        start_game_time = GameTime.get_time()  # start_game_time = 0.0
         self._running = True
+
+        # create new file
+        file = open("data_" + str(int(self.start_system_time * 1000)) + ".csv", "a", newline="")
+        self.writer = csv.writer(file, delimiter=',')
+        # write the first row, the title of csv file, write ego_vehicle first
+        first_row = add_title(self.ego_blueprints, self.other_actors_blueprints)
+        self.writer.writerow(first_row)
 
         while self._running:
             time.sleep(0.5)
 
         self.end_system_time = time.time()
         end_game_time = GameTime.get_time()
-
         self.scenario_duration_system = self.end_system_time - \
-            self.start_system_time
+                                        self.start_system_time
         self.scenario_duration_game = end_game_time - start_game_time
+
+        print("scenario duraiton system: {} \n".format(self.scenario_duration_system))
+        print("scenario duraiton game: {} \n".format(self.scenario_duration_game))
+        print("time stamp list length {} \n".format(len(self._timestamp)))
 
         if self.scenario_tree.status == py_trees.common.Status.FAILURE:
             print("ScenarioManager: Terminated due to failure")
@@ -200,16 +236,20 @@ class ScenarioManager(object):
         with self._my_lock:
             if self._running and self._timestamp_last_run < timestamp.elapsed_seconds:
                 self._timestamp_last_run = timestamp.elapsed_seconds
+                # get every tick seconds with timestamp
+                tick_time = int(time.time() * 1000)
+                # store the time stamp in list
+                self._timestamp.append(tick_time)
 
                 if self._debug_mode:
                     print("\n--------- Tick ---------\n")
 
                 # Update game time and actor information
-                GameTime.on_carla_tick(timestamp)
+                GameTime.on_carla_tick(timestamp)  # GameTime.on_carla_tick(timestamp) = None
                 CarlaDataProvider.on_carla_tick()
 
                 # Tick scenario
-                self.scenario_tree.tick_once()
+                self.scenario_tree.tick_once()  # None
 
                 if self._debug_mode:
                     print("\n")
@@ -219,14 +259,11 @@ class ScenarioManager(object):
 
                 if self.scenario_tree.status != py_trees.common.Status.RUNNING:
                     self._running = False
-                distances = []
-                for i in range(len(self.other_actors)):
-                    distance = np.sqrt((self.other_actors[i].get_location().x - self.ego_vehicles[0].get_location().x)**2 + (
-                                self.other_actors[i].get_location().y - self.ego_vehicles[0].get_location().y)**2)
-                    distances.append(distance)
-                    #print('actor ' + str(i) + ': ' + str(distance))
-                if distances[0] < self.shortest_distance:
-                    self.shortest_distance = distances[0]
+
+                # get the information and form it in a list
+                self._temp = add_contents(tick_time, self.ego_vehicles, self.other_actors)
+                # write all the information w.r.t. current timestamp
+                self.writer.writerow(self._temp)
 
     def stop_scenario(self):
         """
@@ -238,10 +275,9 @@ class ScenarioManager(object):
         # notify agent with escape key to close actual window
         self.keyboard.press(Key.esc)
         self.keyboard.release(Key.esc)
+        # write recorded data to file and create new recording file every 5 seconds
+        # the frequency of creating a new data file denpends on the epoch parameters
 
-        # write recorded data to file
-        file = open("data.txt", "a+")
-        file.write(str(self.shortest_distance) + ',')
         CarlaDataProvider.cleanup()
 
     def analyze_scenario(self, stdout, filename, junit):

@@ -22,6 +22,7 @@ import py_trees
 
 import carla
 
+from srunner.scenariomanager.scenario_manager import *
 from srunner.scenariomanager.atomic_scenario_behavior import *
 from srunner.scenariomanager.atomic_scenario_criteria import *
 from srunner.scenariomanager.timer import TimeOut
@@ -54,16 +55,15 @@ class FollowLeadingVehicle(BasicScenario):
         If randomize is True, the scenario parameters are randomized
         """
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = CarlaDataProvider.get_map()      ## get the map instance from carla map class
         self._first_vehicle_location = 25
         self._first_vehicle_speed = 40
-        self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
-        self._other_actor_max_brake = 1.0
-        self._other_actor_stop_in_front_intersection = 20
+        self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location) # method from carla map class
+        self._other_actor_max_brake = 1.0    ## brake value for the other actor
+        self._other_actor_stop_in_front_intersection = 20  #
         self._other_actor_transform = None
         # Timeout of scenario in seconds
         self.timeout = timeout
-
         super(FollowLeadingVehicle, self).__init__("FollowVehicle",
                                                    ego_vehicles,
                                                    config,
@@ -86,19 +86,44 @@ class FollowLeadingVehicle(BasicScenario):
         Custom initialization
         """
 
-        first_vehicle_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._first_vehicle_location)
+        first_vehicle_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._first_vehicle_location) #return waypoint.transform.location, traveled_distance
         self._other_actor_transform = carla.Transform(
             carla.Location(first_vehicle_waypoint.transform.location.x,
                            first_vehicle_waypoint.transform.location.y,
                            first_vehicle_waypoint.transform.location.z + 1),
-            first_vehicle_waypoint.transform.rotation)
+            first_vehicle_waypoint.transform.rotation)                    ### get the transformation of other actors, the location and rotation
         first_vehicle_transform = carla.Transform(
             carla.Location(self._other_actor_transform.location.x,
                            self._other_actor_transform.location.y,
                            self._other_actor_transform.location.z - 500),
-            self._other_actor_transform.rotation)
+            self._other_actor_transform.rotation)                        ### the transformation of first vehicle
+        '''
+        so the transformation contains two parameters:
+        1. location
+        2. rotation
+        
+        can be retrieved by transform.location and transform.rotation
+        
+        '''
         first_vehicle = CarlaActorPool.request_new_actor('vehicle.nissan.patrol', first_vehicle_transform)
-        self.other_actors.append(first_vehicle)
+        """
+           The CarlaActorPool caches all scenario relevant actors.
+           It works similar to a singelton.
+
+           An actor can be created via "request_actor", and access
+           is possible via "get_actor_by_id".
+
+           Using CarlaActorPool, actors can be shared between scenarios.
+           
+           
+           Method:
+           request_new_actor(model, spawn_point, rolename='scenario', hero=False, autopilot=False, random_location=False):
+                
+            This method tries to create a new actor. If this was
+            successful, the new actor is returned, None otherwise.
+    
+           """
+        self.other_actors.append(first_vehicle)   ## after creating this vehicle and then add this new vehicle as new actors to the other_actors list
 
     def _create_behavior(self):
         """
@@ -112,6 +137,12 @@ class FollowLeadingVehicle(BasicScenario):
 
         # to avoid the other actor blocking traffic, it was spawed elsewhere
         # reset its pose to the required one
+        '''
+        This class contains an atomic behavior to set the transform
+        of an actor.
+        
+        ActorTransfromSetter(actor, transform)
+        '''
         start_transform = ActorTransformSetter(self.other_actors[0], self._other_actor_transform)
 
         # let the other actor drive until next intersection
@@ -121,8 +152,35 @@ class FollowLeadingVehicle(BasicScenario):
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
 
         driving_to_next_intersection.add_child(WaypointFollower(self.other_actors[0], self._first_vehicle_speed))
-        driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
-            self.other_actors[0], self._other_actor_stop_in_front_intersection))
+        driving_to_next_intersection.add_child(KeepVelocity(self.other_actors[0], 10, name="KeepVelocity"))
+
+        '''
+         This is an atomic behavior to follow waypoints indefinitely
+         while maintaining a given speed or if given a waypoint plan,
+         follows the given plan
+         
+          def __init__(self, actor, target_speed, plan=None, blackboard_queue_name=None,
+                 avoid_collision=False, name="FollowWaypoints"):
+        '''
+
+
+
+
+        #driving_to_next_intersection.add_child(InTriggerDistanceToNextIntersection(
+        #    self.other_actors[0], self._other_actor_stop_in_front_intersection))
+
+        '''
+    
+            This class contains the trigger (condition) for a distance to the
+            next intersection of a scenario
+            
+            
+             def __init__(self, actor, distance, name="InTriggerDistanceToNextIntersection"):
+             
+             
+             the distance between the current actors and the next intersection
+    
+        '''
 
         # stop vehicle
         stop = StopVehicle(self.other_actors[0], self._other_actor_max_brake)
@@ -134,9 +192,27 @@ class FollowLeadingVehicle(BasicScenario):
                                                         self.ego_vehicles[0],
                                                         distance=20,
                                                         name="FinalDistance")
+        '''
+          
+        This class contains the trigger distance (condition) between to actors
+        of a scenario
+
+        def __init__(self, other_actor, actor, distance, name="TriggerDistanceToVehicle"):
+        
+        
+        '''
+
+
         endcondition_part2 = StandStill(self.ego_vehicles[0], name="StandStill")
+        # endcondition_part3 = StandStill(self.other_actors[0], name="StandStill")
+
+        '''
+        check if the vehicles stand still (v = 0)
+    
+        '''
         endcondition.add_child(endcondition_part1)
         endcondition.add_child(endcondition_part2)
+        #endcondition.add_child(endcondition_part3)
 
         # Build behavior tree
         sequence = py_trees.composites.Sequence("Sequence Behavior")
