@@ -35,8 +35,6 @@ class MeetAtIntersectionTrial(BasicScenario):
         self._other_actor_max_brake = 5.0  # brake value for the other actor
         # Timeout of scenario in seconds
         self.timeout = timeout
-        self._traffic_light_other = None
-        self._traffic_light_ego = None
         self._goals_1 = [(-120.4, 131.7)]
         super(MeetAtIntersectionTrial, self).__init__("MeetAtIntersection",
                                                       ego_vehicles,

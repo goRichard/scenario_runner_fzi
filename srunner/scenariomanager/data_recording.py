@@ -5,7 +5,7 @@ def object_type_check(actor_blueprint):
     global object_type
     actor_id = actor_blueprint.id
     motorbike_id = ["vehicle.yamaha.yzf", "vehicle.kawasaki.ninja", "vehicle.harley-davidson.low rider"]
-    bife_id = ["vehicle.diamondback.century", "vehicle.bh.crossbike"]
+    bike_id = ["vehicle.diamondback.century", "vehicle.bh.crossbike"]
     if actor_id.startswith("vehicle"):
         number_of_wheels = int(actor_blueprint.get_attribute("number_of_wheels"))
         if number_of_wheels == 4:
@@ -16,14 +16,19 @@ def object_type_check(actor_blueprint):
         elif number_of_wheels == 2:
             if actor_id in motorbike_id:
                 object_type = "motorbike"
-            elif actor_id in bife_id:
-                object_type = "bife"
+            elif actor_id in bike_id:
+                object_type = "bike"
     elif actor_id.startswith("walker"):
         object_type = "pedestrian"
     return object_type
 
 
 def add_title(*actor_blueprints_lists):
+    """
+
+    :param actor_blueprints_lists: the list of actors blueprints, enter ego first then other actor
+    :return: a list of information begins with type_id
+    """
     global object_type
     title_list = ["timestamp"]
     # for input_list in input_lists:

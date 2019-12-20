@@ -132,14 +132,14 @@ class ScenarioManager(object):
         self._relative_velocity = []
 
         self._timestamp = []  # create a timestamp list for storing each time stamp
-        self.ego_vehicles_blueprints = []
-        self.other_actors_blueprints = []
-        self.ego_vehicles_type = []
-        self.other_actors_type = []
+        self.ego_blueprints = [] # initialize the ego blueprints (including vehicles, bike etc.)
+        self.other_actors_blueprints = [] # initialize the other actor blueprints (including vehicles, bike etc.)
+        self.ego_type = [] # type should be look like walker.pedestrian.0001, vehicle.yamaha.yzf etc.
+        self.other_actors_type = [] # same style as ego type
 
         self.keyboard = Controller()
 
-        # get the blueprint_library
+        # get the blueprint_library of the current simulation world
         self.blueprint_library = world.get_blueprint_library()
         world.on_tick(self._tick_scenario)
 
@@ -154,16 +154,23 @@ class ScenarioManager(object):
         self.ego_vehicles = scenario.ego_vehicles
         self.other_actors = scenario.other_actors
         # store the id_number value in two lists
-        ego_vehicles_type = [ego_vehicle.type_id for ego_vehicle in self.ego_vehicles]
+        ego_type = [ego_vehicle.type_id for ego_vehicle in self.ego_vehicles]
         other_actors_type = [other_actor.type_id for other_actor in self.other_actors]
 
         # get blueprints of the world and for ego and other actors
         blueprints = [bp for bp in self.blueprint_library.filter("*")]
+        # get vehicle blueprints in this world
         vehicles = self.blueprint_library.filter("vehicle.*")
+
+        # get the walker blueprints in this walker
         walkers = self.blueprint_library.filter("walker.*")
 
+        # choose a random walker from the walker
+        random_walker = np.random.choice(walkers)
+
+
         # get the blueprints instance of ego and other actors
-        self.ego_vehicles_blueprints = [blueprint for blueprint in blueprints if blueprint.id in ego_vehicles_type]
+        self.ego_blueprints = [blueprint for blueprint in blueprints if blueprint.id in ego_type]
         self.other_actors_blueprints = [blueprint for blueprint in blueprints if blueprint.id in other_actors_type]
 
         CarlaDataProvider.register_actors(self.ego_vehicles)
@@ -196,7 +203,7 @@ class ScenarioManager(object):
         file = open("data_" + str(int(self.start_system_time * 1000)) + ".csv", "a", newline="")
         self.writer = csv.writer(file, delimiter=',')
         # write the first row, the title of csv file, write ego_vehicle first
-        first_row = add_title(self.ego_vehicles_blueprints, self.other_actors_blueprints)
+        first_row = add_title(self.ego_blueprints, self.other_actors_blueprints)
         self.writer.writerow(first_row)
 
         while self._running:
