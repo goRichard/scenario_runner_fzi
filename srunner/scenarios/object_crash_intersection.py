@@ -80,6 +80,8 @@ class VehicleTurningRight(BasicScenario):
         self.category = "VehicleTurning"
         self._wmap = CarlaDataProvider.get_map()
         self._reference_waypoint = self._wmap.get_waypoint(config.trigger_points[0].location)
+        print(f"reference waypoint = {self._reference_waypoint}")
+        print(f"config trigger points = {config.trigger_points[0].location}")
         self._trigger_location = config.trigger_points[0].location
         self._other_actor_transform = None
         self._num_lane_changes = 0
@@ -106,7 +108,9 @@ class VehicleTurningRight(BasicScenario):
 
         waypoint = self._reference_waypoint
         waypoint = generate_target_waypoint(waypoint, 1)
+        print(f"waypoint = {waypoint}")
         _start_distance = 8
+
         while True:
             wp_next = waypoint.get_right_lane()
             self._num_lane_changes += 1
@@ -125,7 +129,7 @@ class VehicleTurningRight(BasicScenario):
             try:
                 self._other_actor_transform = get_opponent_transform(_start_distance, waypoint,
                                                                      self._trigger_location, last_waypoint_lane)
-                first_vehicle = CarlaActorPool.request_new_actor('vehicle.diamondback.century',
+                first_vehicle = CarlaActorPool.request_new_actor('vehicle.bh.crossbike',
                                                                  self._other_actor_transform)
                 first_vehicle.set_simulate_physics(enabled=False)
 
@@ -165,6 +169,7 @@ class VehicleTurningRight(BasicScenario):
         if self._ego_route is not None:
             trigger_distance = InTriggerDistanceToLocationAlongRoute(self.ego_vehicles[0], self._ego_route,
                                                                      self.other_actors[0].get_location(), 20)
+
         else:
             trigger_distance = InTriggerDistanceToVehicle(self.other_actors[0], self.ego_vehicles[0], 20)
 
@@ -279,7 +284,7 @@ class VehicleTurningLeft(BasicScenario):
             try:
                 self._other_actor_transform = get_opponent_transform(_start_distance, waypoint,
                                                                      self._trigger_location, last_waypoint_lane)
-                first_vehicle = CarlaActorPool.request_new_actor('vehicle.diamondback.century',
+                first_vehicle = CarlaActorPool.request_new_actor('vehicle.bh.crossbike',
                                                                  self._other_actor_transform)
                 first_vehicle.set_simulate_physics(enabled=False)
 

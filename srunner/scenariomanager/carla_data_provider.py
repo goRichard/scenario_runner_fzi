@@ -638,3 +638,8 @@ class CarlaActorPool(object):
 
         # Remove all keys with None values
         CarlaActorPool._carla_actor_pool = dict({k: v for k, v in CarlaActorPool._carla_actor_pool.items() if v})
+
+
+if __name__ == "__main__":
+    CAP = CarlaActorPool()
+    print(f"actor pool {CAP._carla_actor_pool}")

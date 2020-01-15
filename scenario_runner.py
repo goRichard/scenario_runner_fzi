@@ -25,6 +25,7 @@ import inspect
 from srunner.custom_scenarios.test_scenario import *
 from srunner.custom_scenarios.setlevel_intersection import *
 from srunner.custom_scenarios.setlevel_intersection_3cars import *
+from srunner.custom_scenarios.simple_crossing_MS1 import *
 from srunner.scenarios.background_activity import *
 from srunner.scenarios.control_loss import *
 from srunner.custom_scenarios.confrontation_cross import *
@@ -40,6 +41,7 @@ from srunner.scenarios.other_leading_vehicle import *
 from srunner.scenarios.signalized_junction_left_turn import *
 from srunner.scenarios.signalized_junction_right_turn import *
 from srunner.scenarios.turn_left_vehicle_give_way import *
+from srunner.scenarios.freeride import *
 from srunner.scenarios.open_scenario import OpenScenario
 from srunner.tools.config_parser import *
 from srunner.tools.openscenario_parser import OpenScenarioConfiguration
@@ -68,9 +70,10 @@ SCENARIOS = {
     "SetLevelIntersection": SETLEVEL_INTERSECTION,
     "SetLevelIntersection3A": SETLEVEL_INTERSECTION_3A,
     "ConfrontationCross": CONFRONTATION_CROSS,
-
     "MeetAtIntersection": MEET_AT_INTERSECTION_SCENARIOS,
-    "TurnLeftVehicleGiveWay": TURNING_LEFT_SCENARIOS
+    "TurnLeftVehicleGiveWay": TURNING_LEFT_SCENARIOS,
+    "SimpleCrossing": SIMPLE_CROSSING_SCENARIOS,
+    "FreeRide": FREERIDE_SCENARIOS
 }
 
 

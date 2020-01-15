@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<scenarios>
+    <scenario name="VehicleSimpleCrossing_1" type="VehicleConfrontationCross" town="Town04">
+        <ego_vehicle x="258.3" y="-195.2" z="0.2" yaw="-90" model="vehicle.lincoln.mkz2017"/>
+    </scenario>
+    <scenario name="VehicleSimpleCrossing_2" type="VehicleConfrontationCross" town="Town04">
+        <ego_vehicle x="268" y="-195." z="0.5" yaw="-90" model="vehicle.nissan.patrol" />
+    </scenario>
+</scenarios>
