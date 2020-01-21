@@ -11,7 +11,7 @@ a pedestrian walk cross the road at the same time
 """
 
 import py_trees
-
+from functools import *
 import carla
 
 from srunner.scenariomanager.atomic_scenario_behavior import *
@@ -27,12 +27,32 @@ SIMPLE_CROSSING_SCENARIOS = [
 
 def get_spawn_point(world):
     spawn_points = []
+    spawn_points_location = []
     for i in range(50):
         spawn_point = carla.Transform()
         spawn_point.location = world.get_random_location_from_navigation()
         if spawn_point.location is not None:
             spawn_points.append(spawn_point)
-    return spawn_points
+            spawn_points_location.append([spawn_point.location.x, spawn_point.location.y, spawn_point.location.z])
+    return spawn_points, spawn_points_location
+
+
+def in_radius_check(trigger_point, check_point, radius=50):
+    """
+
+    :param radius:
+    :param trigger_point: carla.location
+    :param check_point: carla.transform
+    :return:
+    """
+    squared_distance = \
+        (trigger_point.x - check_point.location.x) ** 2 + (trigger_point.y - check_point.location.y) ** 2 + (
+                trigger_point.z - check_point.location.z) ** 2
+
+    euclidean_distance = np.sqrt(squared_distance)
+
+    if euclidean_distance < radius:
+        return check_point
 
 
 def get_opponent_transform(_start_distance, waypoint, trigger_location, last_waypoint_lane):
@@ -86,11 +106,27 @@ class VehicleConfrontationCross(BasicScenario):
         self._wmap = CarlaDataProvider.get_map()
         self._reference_waypoint = self._wmap.get_waypoint(config.trigger_points[0].location)
         self._trigger_location = config.trigger_points[0].location
+        print(f"trigger location at {self._trigger_location.x}")
         self._other_actor_transform = None
-        self._blueprintWalkers = world.get_blueprint_library().filter("walker.pedestrian.*")
+        self._blueprintWalkers = world.get_blueprint_library().filter("walker.*")  # create the walker object
 
         # get the spawn points:
-        self._spawn_points = get_spawn_point(world)
+        self._spawn_points = world.get_map().get_spawn_points()
+        self._spawn_points_location = [spawn_point.location for spawn_point in self._spawn_points]
+        self._spawn_points_location_list = [[spawn_point.location.x, spawn_point.location.y, spawn_point.location.z] for
+                                            spawn_point in self._spawn_points]
+        print(f"spawn_points = {len(self._spawn_points_location)}")  # At 373 points in world walker can be spawned
+
+        # get the spawn poins near trigger points
+        in_radius_check_fixed_trigger = partial(in_radius_check, self._trigger_location)
+        temp_spawn_points_near_trigger_points = list(map(in_radius_check_fixed_trigger, self._spawn_points))
+        self._spawn_points_near_trigger_points = [spawn_point_near_trigger_point for spawn_point_near_trigger_point
+                                                  in temp_spawn_points_near_trigger_points if spawn_point_near_trigger_point is not None]
+        print(f"spawn points near trigger = {self._spawn_points_near_trigger_points}")
+        # only have some spawn points at radius of 50 meter
+
+        #world.try_spawn_actor(self._blueprintWalkers, self._spawn_points_near_trigger_points[0])
+
 
         # Total Number of attempts to relocate a vehicle before spawning
         self._number_of_attempts = 6
@@ -162,13 +198,7 @@ class VehicleConfrontationCross(BasicScenario):
         self._walker_controller_actor = self._world.spawn_actor(self._walker_controller_bp, carla.Transform(),
                                                                 self._walker_actor)
         self.other_actors.append(first_vehicle)
-        #self.other_actors.append(self._walker_bp)
-
-        self._world.wait_for_tick()
-        self._walker_controller_actor.start()
-        self._walker_controller_actor.go_to_location(self._world.get_random_location_from_navigation())
-        print(f"world.get_random_location_from_navigation {self._world.get_random_location_from_navigation()}")
-        self._walker_controller_actor.set_max_speed(1.4)
+        # self.other_actors.append(self._walker_bp)
 
     def _create_behavior(self):
 
