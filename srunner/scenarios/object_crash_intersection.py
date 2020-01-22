@@ -124,7 +124,7 @@ class VehicleTurningRight(BasicScenario):
             else:
                 last_waypoint_lane = waypoint.lane_type
                 break
-
+        print(f"waypoint lane type =  {last_waypoint_lane}")
         while True:
             try:
                 self._other_actor_transform = get_opponent_transform(_start_distance, waypoint,

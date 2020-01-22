@@ -350,7 +350,7 @@ def generate_target_waypoint(waypoint, turn=0):
                 break
         elif reached_junction and not wp_list[-1].is_intersection:
             break
-    return wp_list[-1]
+    return wp_list
 
 
 def choose_at_junction(current_waypoint, next_choices, direction=0):
