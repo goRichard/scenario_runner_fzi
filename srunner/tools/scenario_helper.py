@@ -315,7 +315,7 @@ def generate_target_waypoint_list_multilane(waypoint, change='left',
     return plan, target_lane_id
 
 
-def generate_target_waypoint(waypoint, turn=0):
+def generate_target_waypoint_list(waypoint, turn=0):
     """
     This method follow waypoints to a junction and choose path based on turn input.
     Turn input: LEFT -> -1, RIGHT -> 1, STRAIGHT -> 0
@@ -351,6 +351,16 @@ def generate_target_waypoint(waypoint, turn=0):
         elif reached_junction and not wp_list[-1].is_intersection:
             break
     return wp_list
+
+
+def generate_target_waypoint(waypoint, turn=0):
+    """
+    This method follow waypoints to a junction and choose path based on turn input.
+    Turn input: LEFT -> -1, RIGHT -> 1, STRAIGHT -> 0
+    @returns a waypoint list according to turn input
+    """
+    wp_list = generate_target_waypoint_list(waypoint, turn)
+    return wp_list[-1]
 
 
 def choose_at_junction(current_waypoint, next_choices, direction=0):
