@@ -29,7 +29,7 @@ def get_spawn_point(world):
     spawn_points = []
     spawn_points_location = []
     for i in range(50):
-        spawn_point = carla.Transform() # carla.Transform contains location and rotation
+        spawn_point = carla.Transform()  # carla.Transform contains location and rotation
         spawn_point.location = world.get_random_location_from_navigation()
         if spawn_point.location is not None:
             spawn_points.append(spawn_point)
@@ -74,10 +74,17 @@ def get_opponent_transform(_start_distance, waypoint, trigger_location, last_way
     :param last_waypoint_lane:
     :return:
     """
-    # tune
-    near_side_offset = {"orientation": 270, "position": 90, "z": 0.25, "k": 1.0}
-    # tune this k for different start point of cyclist
-    far_side_offset = {"orientation": 90, "position": 90, "z": 0.25, "k": 3.0}
+    # tune parameter k_d2 for different distance d_2 (see in folien)
+    # tune parameter k_d3 for different distance d_3 (see in folien)
+    # tune parameter d2_position (either 90 or 270)
+    # 90: farther from junction
+    # 270: closer to junction
+    # tune parameter d3_position for the same
+    near_side_offset = {"orientation": 270, "position": 180, "z": 0.25, "k_d2": 2.0, "k_d3": 2.0, "d2_position": 90,
+                        "d3_position": 90}
+    far_side_offset = {"orientation": 90, "position": 90, "z": 0.25, "k_d2": 2.0, "k_d3": 2.0, "d2_position": 90,
+                       "d3_position": 90}
+
     # Returns a list of Waypoints at a certain approximate distance from the current Waypoint,
     # taking into account the shape of the road and its possible deviations, without performing any lane change.
     # The list may be empty if the road ends before the specified distance,
@@ -86,7 +93,7 @@ def get_opponent_transform(_start_distance, waypoint, trigger_location, last_way
     _wp = waypoint.next(_start_distance)
 
     if _wp:
-        _wp = _wp[-1] # get the last waypoint of _wp waypoint list
+        _wp = _wp[-1]  # get the last waypoint of _wp waypoint list
     else:
         raise RuntimeError("Cannot get next waypoint !")
 
@@ -103,21 +110,12 @@ def get_opponent_transform(_start_distance, waypoint, trigger_location, last_way
     # original _wp.transform.rotation: (pitch=0, yaw=360, roll=0)
     if approach_type == "farside":
         location = _wp.transform.location  # the last waypoint's location
-
-        # tune this parameter can get different cylist driving direction
         orientation_yaw = _wp.transform.rotation.yaw + far_side_offset["orientation"]
-
-        # tune the distance d_1 (shoulder in this simple case) or sidewalk here
         position_yaw = _wp.transform.rotation.yaw + far_side_offset["position"]
-
-        # in this way by tuning the parameter k and postion_yaw, location of adversary can be varied
-        # from cos * k-times lane_width or sin * k-times lane-width
-        # offset_location: (0, 2.5)
         offset_location = carla.Location(
-            far_side_offset['k'] * lane_width * math.cos(math.radians(position_yaw)),
-            far_side_offset['k'] * lane_width * math.sin(math.radians(position_yaw)))
+            far_side_offset['k_d2'] * lane_width * math.cos(math.radians(far_side_offset["d2_position"])),
+            far_side_offset['k_d3'] * lane_width * math.sin(math.radians(far_side_offset["d3_position"])))
         location -= offset_location
-        #print(f"far side location = {location}")
         location.z = trigger_location.z + near_side_offset["z"]
         transform = carla.Transform(location, carla.Rotation(yaw=orientation_yaw))
         return transform
@@ -125,12 +123,11 @@ def get_opponent_transform(_start_distance, waypoint, trigger_location, last_way
         location = _wp.transform.location
         orientation_yaw = _wp.transform.rotation.yaw + near_side_offset["orientation"]
         position_yaw = _wp.transform.rotation.yaw + near_side_offset["position"]
-
         offset_location = carla.Location(
-            near_side_offset['k'] * lane_width * math.cos(math.radians(position_yaw)),
-            near_side_offset['k'] * lane_width * math.sin(math.radians(position_yaw)))
+            near_side_offset['k_d2'] * lane_width * math.sin(math.radians(near_side_offset["d2_position"])),
+            near_side_offset['k_d3'] * lane_width * math.sin(math.radians(near_side_offset["d3_position"])))
         location += offset_location
-        #print(f"near side location: {location}")
+        # print(f"near side location: {location}")
         location.z = trigger_location.z + near_side_offset["z"]
         transform = carla.Transform(location, carla.Rotation(yaw=orientation_yaw))
         return transform
@@ -162,14 +159,14 @@ class VehicleConfrontationCross(BasicScenario):
         self._reference_waypoint = self._wmap.get_waypoint(config.trigger_points[0].location)
         self._trigger_location = config.trigger_points[0].location
         self._other_actor_transform = None
-        #self._blueprintWalkers = world.get_blueprint_library().filter("walker.*")  # create the walker object
+        # self._blueprintWalkers = world.get_blueprint_library().filter("walker.*")  # create the walker object
 
         # get the spawn points:
         self._spawn_points = world.get_map().get_spawn_points()
         self._spawn_points_location = [spawn_point.location for spawn_point in self._spawn_points]
         self._spawn_points_location_list = [[spawn_point.location.x, spawn_point.location.y, spawn_point.location.z] for
                                             spawn_point in self._spawn_points]
-        print(f"spawn_points = {len(self._spawn_points_location)}")  # At 373 points in world walker can be spawned
+        # print(f"spawn_points = {len(self._spawn_points_location)}")  # At 373 points in world walker can be spawned
 
         # get the spawn poins near trigger points
         in_radius_check_fixed_trigger = partial(in_radius_check, self._trigger_location)
@@ -177,7 +174,7 @@ class VehicleConfrontationCross(BasicScenario):
         self._spawn_points_near_trigger_points = [spawn_point_near_trigger_point for spawn_point_near_trigger_point
                                                   in temp_spawn_points_near_trigger_points
                                                   if spawn_point_near_trigger_point is not None]
-        print(f"spawn points near trigger = {self._spawn_points_near_trigger_points}")
+        # print(f"spawn points near trigger = {self._spawn_points_near_trigger_points}")
 
         # Total Number of attempts to relocate a vehicle before spawning
         self._number_of_attempts = 6
@@ -205,14 +202,14 @@ class VehicleConfrontationCross(BasicScenario):
         # usually it will only return the last waypoint
         # make a change to return all the possible points from start point to end point
         waypoint_list = generate_target_waypoint_list(waypoint, 1)
-        print(f"waypoint_list = {len(waypoint_list)}")
+        # print(f"waypoint_list = {len(waypoint_list)}")
         # take the last point as waypoint
 
-        waypoints = waypoint_list[-7:] # x coordinate from 262 -> 266
-        print(f"waypoints = {[waypoint.transform.location.x for waypoint in waypoints]}")
+        waypoints = waypoint_list[-7:]  # x coordinate from 262 -> 266
+        # print(f"waypoints = {[waypoint.transform.location.x for waypoint in waypoints]}")
         # tune the distance d_2
         waypoint = waypoints[-1]
-        print(f"waypoint = {waypoint}")
+        # print(f"waypoint = {waypoint}")
 
         _start_distance = 8
 
@@ -222,9 +219,9 @@ class VehicleConfrontationCross(BasicScenario):
             # 1 for right lane
             # -1 for left lane
             wp_next = waypoint.get_right_lane()
-            print(f"wp_next = {wp_next}")
+            # print(f"wp_next = {wp_next}")
             wp_next_left = waypoint.get_left_lane()
-            print(f"wp_next_left = {wp_next_left}")
+            # print(f"wp_next_left = {wp_next_left}")
             self._num_lane_changes += 1
 
             if wp_next is not None:
@@ -241,7 +238,7 @@ class VehicleConfrontationCross(BasicScenario):
             try:
                 self._other_actor_transform = get_opponent_transform(_start_distance, waypoint,
                                                                      self._trigger_location, last_waypoint_lane,
-                                                                     "farside")
+                                                                     "nearside")
                 first_vehicle = CarlaActorPool.request_new_actor('vehicle.bh.crossbike',
                                                                  self._other_actor_transform)
                 first_vehicle.set_simulate_physics(enabled=False)
@@ -249,13 +246,13 @@ class VehicleConfrontationCross(BasicScenario):
                 break
             except RuntimeError as r:
                 # In the case there is an object just move a little bit and retry
-                print("Base transform is blocking objects ", self._other_actor_transform)
+                # print("Base transform is blocking objects ", self._other_actor_transform)
                 _start_distance += 0.2
                 self._spawn_attempted += 1
                 if self._spawn_attempted >= self._number_of_attempts:
                     raise r
         # Set the transform to -500 z after we are able to spawn it
-        print(f"self_actor_transform = {[self._other_actor_transform.location.x, self._other_actor_transform.location.y,self._other_actor_transform.rotation.pitch, self._other_actor_transform.rotation.yaw, self._other_actor_transform.rotation.roll]}")
+        # print(f"self_actor_transform = {[self._other_actor_transform.location.x, self._other_actor_transform.location.y,self._other_actor_transform.rotation.pitch, self._other_actor_transform.rotation.yaw, self._other_actor_transform.rotation.roll]}")
         actor_transform = carla.Transform(
             carla.Location(self._other_actor_transform.location.x,
                            self._other_actor_transform.location.y,
