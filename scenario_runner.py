@@ -217,7 +217,7 @@ class ScenarioRunner(object):
         Provide feedback about success/failure of a scenario
         """
 
-        current_time = str(datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
+        current_time = str(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
         junit_filename = None
         config_name = config.name
         if args.outputDir != '':
